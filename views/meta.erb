@@ -1,0 +1,12 @@
+{
+    "owner_email" : "publishers@bergcloud.com",
+    "publication_api_version":"1.0",
+    "name": "Google Analytics (<% if settings.period == 'weekly' %>Weekly<% else %>Daily<% end %>)",
+    "description": "A summary of your site's traffic",
+    "delivered_on": "every <% if settings.period == 'weekly' %>Monday<% else %>day<% end %>",
+    "send_timezone_info": true,
+    "send_delivery_count": false,
+    "external_configuration": true,
+    "config" : {
+    }
+}
