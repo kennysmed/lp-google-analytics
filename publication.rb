@@ -2,7 +2,6 @@
 require 'legato'
 require 'oauth2'
 require 'sinatra'
-require 'redis'
 
 enable :sessions
 
@@ -19,14 +18,6 @@ auth_client = OAuth2::Client.new(
 
 
 configure do
-  if settings.production?
-    raise 'REDISCLOUD_URL is not set' if !ENV['REDISCLOUD_URL']
-    uri = URI.parse(ENV['REDISCLOUD_URL'])
-    REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.password)
-  else
-    REDIS = Redis.new()
-  end
-
   if settings.development?
     # So we can see what's going wrong on Heroku.
     set :show_exceptions, true
