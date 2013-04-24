@@ -4,7 +4,9 @@ require 'oauth2'
 require 'sinatra'
 require 'redis'
 
-enable :sessions
+use Rack::Session::Cookie, :key => 'ga_lp',
+                           :path => '/',
+                           :expire_after => 50 * 60 # In seconds
 
 raise 'GOOGLE_CLIENT_ID is not set' if !ENV['GOOGLE_CLIENT_ID']
 raise 'GOOGLE_CLIENT_SECRET is not set' if !ENV['GOOGLE_CLIENT_SECRET']
@@ -60,7 +62,6 @@ helpers do
 end
 
 
-
 get %r{/(daily|weekly)/meta.json} do |period|
   set_period(period)
   content_type :json
@@ -70,6 +71,11 @@ end
 
 get %r{/(daily|weekly)/edition/} do |period|
   set_period(period)
+
+  # The Google API refresh_token will be sent in params[:access_token]
+  # Use that to get a new access_token_obj.
+  # access_token_obj = OAuth2::AccessToken.from_hash(auth_client,
+  #                       :refresh_token => params[:access_token]).refresh!
   erb :publication
 end
 
@@ -95,6 +101,10 @@ get %r{/(daily|weekly)/configure/} do |period|
 end
 
 
+# Return from Google having authenticated (hopefully).
+# We can now get the access_token and refresh_token from Google.
+# Then we can let the user select which of their Profiles (if more than one)
+# that they want to use.
 get %r{/(daily|weekly)/return/} do |period|
   set_period(period)
 
@@ -104,10 +114,59 @@ get %r{/(daily|weekly)/return/} do |period|
                       :redirect_uri => "#{domain}/#{settings.period}/return/",
                       :token_method => :post
                     })
+  # The refresh_token is used in future to get another access_token for the
+  # same user. So this is what we send back to bergcloud.com.
   @access_token = access_token_obj.token
   @refresh_token = access_token_obj.refresh_token
-  
-  erb :publication
+
+  # TODO: Error checking.
+  user = Legato::User.new(access_token_obj)
+
+  if user.profiles.length == 1
+    redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{@refresh_token}&config[profiles]=#{user.profiles.first.id}"
+  else
+    @profiles = user.profiles
+    erb :local_config
+  end
+end
+
+
+get %r{/(daily|weekly)/local_config/} do |period|
+  set_period(period)
+
+  erb :local_config
+end
+
+
+# The user has come here after submitting the form for selecting one or more
+# Google Analytics profiles.
+# If they have chosen one or more, then we can return them to bergcloud.com
+post %r{/(daily|weekly)/local_config/} do |period|
+  set_period(period)
+
+  if params[:profiles] && params[:profiles].length
+    # The user selected some profile(s).
+
+    # TODO: Check the Profile IDs are valid.
+    # TODO: Check we have the refresh token still.
+    redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{params[:refresh_token]}&config[profiles]=#{params[:profiles].join('+')}"
+  else
+    # No profiles submitted. Re-show form.
+    # Use the access_token that was in hidden form variables to get a new
+    # access_token_obj, and then a user, so we can re-fetch their profiles.
+    # (The access_token expires after one hour.)
+    # TODO: Error checking.
+    access_token_obj = OAuth2::AccessToken.new(
+                                            auth_client, params[:access_token])
+    @access_token = access_token_obj.token
+    @refresh_token = params[:refresh_token]
+    # TODO: Error checking.
+    user = Legato::User.new(access_token_obj)
+    @profiles = user.profiles
+    @errors = ["Please select a Profile"]
+    erb :local_config
+  end
+
 end
 
 

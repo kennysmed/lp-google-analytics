@@ -3,6 +3,8 @@
 
 In progress.
 
+Useful: https://gist.github.com/jotto/2932998  
+https://github.com/tpitale/legato/wiki/
 
 
 ## Setting up
@@ -13,7 +15,7 @@ Assuming you're familiar with the [guide to creating a publication](http://remot
 
 2. If the environment is `production` we require the `REDISCLOUD_URL` environment variable to be set. If `development`, we assume an open, local Redis.
 
-3. Go to https://code.google.com/apis/console#access and create a new Project. In "API Access", create an OAuth 2.0 client ID.
+3. Go to https://code.google.com/apis/console#access and create a new Project. In "Settings" turn "Analytics API" on. In "API Access", create an OAuth 2.0 client ID.
 
 4. Set the "Redirect URIs" to be like:
 

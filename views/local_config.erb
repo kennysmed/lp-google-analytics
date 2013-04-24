@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Analytics (<%= settings.period.capitalize %>)</title>
+  <style type="text/css">
+    body {
+      background: #fff;
+      color: #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Google Analytics on Little Printer (<%= settings.period.capitalize %>)</title></h1>
+
+  <% if ! @profiles %>
+    <p>Oops, we don't have any profiles to select.</p>
+  <% else %>
+
+    <% if @errors %>
+      <ul class="errors">
+        <% @errors.each do |e| %>
+          <li><%= e %></li>
+        <% end %>
+      </ul>
+    <% end %>
+
+    <form method="post" action="<%= url('/'+settings.period+'/local_config/') %>">
+      <ul>
+      <% @profiles.each do |p| %>
+        <li><input type="checkbox" name="profiles[]" value="<%= p.id %>" />
+          <label for="p<%= p.id %>"><%= p.name %></label>
+        </li>
+      <% end %>
+      </ul>
+
+      <p>
+        <input type="submit" value="Submit" />
+        <input type="hidden" name="access_token" value="<%= @access_token %>" />
+        <input type="hidden" name="refresh_token" value="<%= @refresh_token %>" />
+      </p>
+
+    </form>
+  <% end %>
+
+</body>
+</html>
