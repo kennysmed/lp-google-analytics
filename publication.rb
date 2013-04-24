@@ -23,6 +23,10 @@ configure do
     set :show_exceptions, true
   end
 
+  # What's the maximum number of Analytics Profiles we allow the user to
+  # subscribe to in one publication?
+  set :maximum_profiles, 3
+
   # The different periods we can display results for.
   # The periods should be options within the URL route matching for each
   # endpoint, eg:
@@ -146,6 +150,7 @@ get %r{/(daily|weekly)/return/} do |period|
   user = Legato::User.new(access_token_obj)
 
   if user.profiles.length == 1
+    # If the user only has one Profile, no need for any config. We use that.
     # The refresh_token is used in future to get another access_token for the
     # same user. So this is what we send back to bergcloud.com.
     redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{access_token_obj.refresh_token}&config[profiles]=#{user.profiles.first.id}"
@@ -161,12 +166,16 @@ end
 get %r{/(daily|weekly)/local_config/} do |period|
   set_period(period)
 
+  # TODO: Error checking.
+  # If access_token has expired, try session[:refresh_token]?
   access_token_obj = OAuth2::AccessToken.new(
                                           auth_client, session[:access_token])
 
   # TODO: Error checking.
   user = Legato::User.new(access_token_obj)
   @accounts_properties_profiles = get_profiles(user)
+  @form_error = session[:form_error]
+  session[:form_error] = nil
   erb :local_config
 end
 
@@ -185,17 +194,8 @@ post %r{/(daily|weekly)/local_config/} do |period|
     redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{session[:refresh_token]}&config[profiles]=#{params[:profiles].join('+')}"
   else
     # No profiles submitted. Re-show form.
-    # Use the access_token that was in hidden form variables to get a new
-    # access_token_obj, and then a user, so we can re-fetch their profiles.
-    # (The access_token expires after one hour.)
-    # TODO: Error checking.
-    access_token_obj = OAuth2::AccessToken.new(
-                                            auth_client, session[:access_token])
-    # TODO: Error checking.
-    user = Legato::User.new(access_token_obj)
-    @accounts_properties_profiles = get_profiles(user)
-    @errors = ["Please select a Profile"]
-    erb :local_config
+    session[:form_error] = "Plesae select a Profile"
+    redirect url("/#{settings.period}/local_config/")
   end
 end
 

@@ -12,13 +12,17 @@
 <body>
   <h1>Google Analytics on Little Printer (<%= settings.period.capitalize %>)</title></h1>
 
-  <% if @errors %>
-    <ul class="errors">
-      <% @errors.each do |e| %>
-        <li><%= e %></li>
-      <% end %>
-    </ul>
+  <% if settings.maximum_profiles == 1 %>
+    <p>Please choose one of your Google Analytics Profiles.</p>
+  <% else %>
+    <p>Please choose the Google Analytics Profile(s) you'd like in your subscription (you can have up to <%= settings.maximum_profiles %>).</p>
   <% end %>
+
+
+  <% if @form_error %>
+    <p class="error"><%= @form_error %></p>
+  <% end %>
+
 
   <form method="post" action="<%= url('/'+settings.period+'/local_config/') %>">
     <ul>
