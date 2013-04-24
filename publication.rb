@@ -4,9 +4,7 @@ require 'oauth2'
 require 'sinatra'
 require 'redis'
 
-use Rack::Session::Cookie, :key => 'ga_lp',
-                           :path => '/',
-                           :expire_after => 50 * 60 # In seconds
+enable :sessions
 
 raise 'GOOGLE_CLIENT_ID is not set' if !ENV['GOOGLE_CLIENT_ID']
 raise 'GOOGLE_CLIENT_SECRET is not set' if !ENV['GOOGLE_CLIENT_SECRET']
@@ -46,15 +44,6 @@ end
 
 
 helpers do
-  # So we know where to do redirects to.
-  # Example return: 'http://my-app-name.herokuapp.com'
-  # Should handle http/https and port numbers.
-  def domain
-    protocol = request.secure? ? 'https' : 'http'
-    port = request.env['SERVER_PORT'] ? ":#{request.env['SERVER_PORT']}" : ''
-    return "#{protocol}://#{request.env['SERVER_NAME']}#{port}"
-  end
-
   # Set the `period` setting to `period` if it's valid. Else, ignore.
   def set_period(period)
     settings.period = period if settings.valid_periods.include?(period)
@@ -141,7 +130,7 @@ get %r{/(daily|weekly)/configure/} do |period|
   begin
     redirect auth_client.auth_code.authorize_url(
       :scope => 'https://www.googleapis.com/auth/analytics.readonly',
-      :redirect_uri => "#{domain}/#{settings.period}/return/",
+      :redirect_uri => url("/#{settings.period}/return/"),
       :access_type => 'offline',
       :approval_prompt => 'force'
     )
@@ -159,30 +148,34 @@ get %r{/(daily|weekly)/return/} do |period|
   return 500, "No access token was returned by Google" if !params[:code]
 
   access_token_obj = auth_client.auth_code.get_token(params[:code], {
-                      :redirect_uri => "#{domain}/#{settings.period}/return/",
+                      :redirect_uri => url("/#{settings.period}/return/"),
                       :token_method => :post
                     })
-  # The refresh_token is used in future to get another access_token for the
-  # same user. So this is what we send back to bergcloud.com.
-  @access_token = access_token_obj.token
-  @refresh_token = access_token_obj.refresh_token
-
   # TODO: Error checking.
   user = Legato::User.new(access_token_obj)
 
   if user.profiles.length == 1
-    redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{@refresh_token}&config[profiles]=#{user.profiles.first.id}"
+    # The refresh_token is used in future to get another access_token for the
+    # same user. So this is what we send back to bergcloud.com.
+    redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{access_token_obj.refresh_token}&config[profiles]=#{user.profiles.first.id}"
   else
-    @accounts_properties_profiles = get_profiles(user)
-    puts @accounts_properties_profiles
-    erb :local_config
+    session[:refresh_token] = access_token_obj.refresh_token
+    session[:access_token] = access_token_obj.token
+    redirect url("/#{settings.period}/local_config/")
   end
 end
 
 
+# Display the form for choosing which Analytics Profile(s) to use.
 get %r{/(daily|weekly)/local_config/} do |period|
   set_period(period)
 
+  access_token_obj = OAuth2::AccessToken.new(
+                                          auth_client, session[:access_token])
+
+  # TODO: Error checking.
+  user = Legato::User.new(access_token_obj)
+  @accounts_properties_profiles = get_profiles(user)
   erb :local_config
 end
 
@@ -198,7 +191,7 @@ post %r{/(daily|weekly)/local_config/} do |period|
 
     # TODO: Check the Profile IDs are valid.
     # TODO: Check we have the refresh token still.
-    redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{params[:refresh_token]}&config[profiles]=#{params[:profiles].join('+')}"
+    redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{session[:refresh_token]}&config[profiles]=#{params[:profiles].join('+')}"
   else
     # No profiles submitted. Re-show form.
     # Use the access_token that was in hidden form variables to get a new
@@ -206,16 +199,13 @@ post %r{/(daily|weekly)/local_config/} do |period|
     # (The access_token expires after one hour.)
     # TODO: Error checking.
     access_token_obj = OAuth2::AccessToken.new(
-                                            auth_client, params[:access_token])
-    @access_token = access_token_obj.token
-    @refresh_token = params[:refresh_token]
+                                            auth_client, session[:access_token])
     # TODO: Error checking.
     user = Legato::User.new(access_token_obj)
     @accounts_properties_profiles = get_profiles(user)
     @errors = ["Please select a Profile"]
     erb :local_config
   end
-
 end
 
 
