@@ -59,6 +59,54 @@ helpers do
   def set_period(period)
     settings.period = period if settings.valid_periods.include?(period)
   end
+
+  # Extract the Account ID from a Web Property ID.
+  # Web Property ID is like 'UA-89135-2' and Account ID is '89135'
+  def web_property_id_to_account_id(wp_id)
+    /^UA-(\d+)-\d+$/.match(wp_id)[1].to_i
+  end
+
+  # Create a structure that lists a user's Accounts, Web Properties and
+  # Profiles.
+  # Each one is keyed by its ID (integers for Accounts and Profiles, strings
+  # for Web Properties)
+  # {
+  #   12345 => {
+  #     'name'=>'Account Name',
+  #     'properties'=>{
+  #       'UA-12345-1' => {
+  #         'name'=>'Web Property Name',
+  #         'profiles'=>{
+  #           '98765'  => {'name'=>'Profile Name A'},
+  #           '876543' => {'name'=>'Profile Name B'}
+  #         }, 
+  #       },
+  #       ...
+  #     },
+  #     ...
+  #   }
+  # }
+  def get_profiles(user)
+    user_profiles = {}
+
+    user.accounts.each do |a|
+      user_profiles[a.id.to_i] = {'name'=>a.name, 'properties'=>{}}
+    end 
+
+    user.web_properties.each do |wp|
+      account_id = web_property_id_to_account_id(wp.id)
+      user_profiles[account_id]['properties'][wp.id] = {
+                                              'name'=>wp.name, 'profiles'=>{}}
+    end
+
+    user.profiles.each do |p|
+      account_id = web_property_id_to_account_id(p.web_property_id)
+      user_profiles[account_id]['properties'][p.web_property_id]['profiles'][p.id.to_i] = {
+                                                              'name'=>p.name}
+    end
+
+    return user_profiles
+  end
 end
 
 
@@ -125,7 +173,8 @@ get %r{/(daily|weekly)/return/} do |period|
   if user.profiles.length == 1
     redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{@refresh_token}&config[profiles]=#{user.profiles.first.id}"
   else
-    @profiles = user.profiles
+    @accounts_properties_profiles = get_profiles(user)
+    puts @accounts_properties_profiles
     erb :local_config
   end
 end
@@ -162,7 +211,7 @@ post %r{/(daily|weekly)/local_config/} do |period|
     @refresh_token = params[:refresh_token]
     # TODO: Error checking.
     user = Legato::User.new(access_token_obj)
-    @profiles = user.profiles
+    @accounts_properties_profiles = get_profiles(user)
     @errors = ["Please select a Profile"]
     erb :local_config
   end

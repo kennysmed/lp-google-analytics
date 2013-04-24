@@ -12,35 +12,46 @@
 <body>
   <h1>Google Analytics on Little Printer (<%= settings.period.capitalize %>)</title></h1>
 
-  <% if ! @profiles %>
-    <p>Oops, we don't have any profiles to select.</p>
-  <% else %>
+  <% if @errors %>
+    <ul class="errors">
+      <% @errors.each do |e| %>
+        <li><%= e %></li>
+      <% end %>
+    </ul>
+  <% end %>
 
-    <% if @errors %>
-      <ul class="errors">
-        <% @errors.each do |e| %>
-          <li><%= e %></li>
-        <% end %>
-      </ul>
-    <% end %>
-
-    <form method="post" action="<%= url('/'+settings.period+'/local_config/') %>">
-      <ul>
-      <% @profiles.each do |p| %>
-        <li><input type="checkbox" name="profiles[]" value="<%= p.id %>" />
-          <label for="p<%= p.id %>"><%= p.name %></label>
+  <form method="post" action="<%= url('/'+settings.period+'/local_config/') %>">
+    <ul>
+    <% @accounts_properties_profiles.each do |a_id, a_data| %>
+      <% if a_data['properties'].length > 0 %>
+        <li><%= a_data['name'] %>
+          <ul>
+            <% a_data['properties'].each do |wp_id, wp_data| %>
+              <% if wp_data['profiles'].length > 0 %>
+                <li><%= wp_data['name'] %>
+                  <ul>
+                    <% wp_data['profiles'].each do |p_id, p_data| %>
+                      <li><input type="checkbox" name="profiles[]" value="<%= p_id %>" id="p<%= p_id %>" />
+                        <label for="p<%= p_id %>"><%= p_data['name'] %></label>
+                      </li>
+                    <% end %>
+                  </ul>
+                </li>
+              <% end %>
+            <% end %>
+          </ul>
         </li>
       <% end %>
-      </ul>
+    <% end %>
+    </ul>
 
-      <p>
-        <input type="submit" value="Submit" />
-        <input type="hidden" name="access_token" value="<%= @access_token %>" />
-        <input type="hidden" name="refresh_token" value="<%= @refresh_token %>" />
-      </p>
+    <p>
+      <input type="submit" value="Submit" />
+      <input type="hidden" name="access_token" value="<%= @access_token %>" />
+      <input type="hidden" name="refresh_token" value="<%= @refresh_token %>" />
+    </p>
 
-    </form>
-  <% end %>
+  </form>
 
 </body>
 </html>
