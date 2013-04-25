@@ -1,7 +1,9 @@
 # coding: utf-8
-require 'legato'
 require 'oauth2'
+# require 'redis'
 require 'sinatra'
+
+require_relative 'lib/analytics.rb'
 
 enable :sessions
 
@@ -18,6 +20,14 @@ auth_client = OAuth2::Client.new(
 
 
 configure do
+  # if settings.production?
+  #   raise 'REDISCLOUD_URL is not set' if !ENV['REDISCLOUD_URL']
+  #   uri = URI.parse(ENV['REDISCLOUD_URL'])
+  #   REDIS = Redis.new(:host => uri.host, :port => uri.port, :password => uri.password)
+  # else
+  #   REDIS = Redis.new()
+  # end
+
   if settings.development?
     # So we can see what's going wrong on Heroku.
     set :show_exceptions, true
@@ -106,8 +116,12 @@ get %r{/(daily|weekly)/edition/} do |period|
 
   # The Google API refresh_token will be sent in params[:access_token]
   # Use that to get a new access_token_obj.
-  # access_token_obj = OAuth2::AccessToken.from_hash(auth_client,
-  #                       :refresh_token => params[:access_token]).refresh!
+  # TODO: Error checking.
+  access_token_obj = OAuth2::AccessToken.from_hash(auth_client,
+                              :refresh_token => params[:access_token]).refresh!
+  # TODO: Error checking.
+  user = Legato::User.new(access_token_obj)
+
   erb :publication
 end
 
