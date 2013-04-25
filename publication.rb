@@ -43,6 +43,17 @@ helpers do
   # Set the `period` setting to `period` if it's valid. Else, ignore.
   def set_period(period)
     settings.period = period if settings.valid_periods.include?(period)
+
+    # Set the dimensions that we'll need Google Analytics data for.
+    if settings.period == 'weekly'
+      UniqueVisitor.dimensions(:date)
+      Visit.dimensions(:date)
+
+    else
+      UniqueVisitor.dimensions(:date, :hour)
+      Visit.dimensions(:date, :hour)
+
+    end
   end
 
   # Extract the Account ID from a Web Property ID.
@@ -102,6 +113,13 @@ get %r{/(daily|weekly)/meta.json} do |period|
 end
 
 
+# The Edition - what will be printed for the user.
+# 
+# == Parameters
+#   params[:access_token] will be the Google Analytics refresh_token.
+#   params[:profiles] will be a space-separated list of Google Analytics
+#     Profile IDs.
+# 
 get %r{/(daily|weekly)/edition/} do |period|
   set_period(period)
 
@@ -113,8 +131,32 @@ get %r{/(daily|weekly)/edition/} do |period|
   # TODO: Error checking.
   user = Legato::User.new(access_token_obj)
 
+  # Get an array of the Profiles that we have IDs in params[:profiles] for.
+  # Which will be all of them, unless the user has deleted or been removed
+  # from one since they subscribed.
+  profiles = user.profiles.select{|p| params[:profiles].split(' ').include?(p.id)}
+
+  # TODO: If profile is length==0, then display message to user?
+
+  # This is what we'll put all the data in for the template.
+  # It'll contain one hash for each Profile.
+  @profiles_data = []
+
+
+  # Calculate start_date
+  # Calculate end_date
+  # Set sort base on period.
+
+  profiles.each do |profile|
+    profile_data = {}
+    # profile_data['visits'] = Visit.results(profile,
+    #                                       :start_date => )
+
+  end
+
   erb :publication
 end
+
 
 # == Parameters
 #   params['return_url'] will be the publication-specific URL we return the
