@@ -165,7 +165,10 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   @profiles_data = []
 
   profiles.each do |profile|
-    profile_data = {:name => profile.name}
+    profile_data = {:name => profile.name,
+                    :periods => [
+                      {:visits => nil}, {:visits => nil}
+                    ]}
 
     periods.each_with_index do |period, idx|
       profile_data[:periods][idx][:visits] = Visit.results(profile,

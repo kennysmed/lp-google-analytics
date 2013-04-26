@@ -17,21 +17,21 @@
   <p>Doing <%= settings.frequency %>.</p>
 
   <% @profiles_data.each do |p| %>
-    <h2><%= p.name %></h2>
+    <h2><%= p[:name] %></h2>
 
     <h3>Visits</h3>
 
     <h4><% if settings.frequency == 'weekly' %>Last week<% else %>Yesterday<% end %></h4>
     <ul>
-      <% p.periods[0][:visits].each do |v| %>
-        <li><%= v.date %>: <%= v.visits %></li>
+      <% p[:periods][0][:visits].each do |v| %>
+        <li><%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>:00<% end %> – <%= v.visits %></li>
       <% end %> 
     </ul>
 
     <h4>Previous</h4>
     <ul>
-      <% p.periods[1][:visits].each do |v| %>
-        <li><%= v.date %>: <%= v.visits %></li>
+      <% p[:periods][1][:visits].each do |v| %>
+        <li><%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>:00<% end %> – <%= v.visits %></li>
       <% end %> 
     </ul>
 
