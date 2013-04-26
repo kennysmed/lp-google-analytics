@@ -36,6 +36,12 @@ configure do
 
   # The default, which can be changed depending on URL.
   set :frequency, 'daily'
+
+  # Which day of the week does the weekly version appear on?
+  # 1 = Monday, 2 = Tuesday, etc.
+  # NOTE: Google Analytics weeks only run Sun-Sat, so we can't currently
+  # change which kind of week's data we output.
+  set :weekly_day, 1
 end
 
 
@@ -43,17 +49,6 @@ helpers do
   # Set the `frequency` setting to `frequency` if it's valid. Else, ignore.
   def set_frequency(frequency)
     settings.frequency = frequency if settings.valid_frequencies.include?(frequency)
-
-    # Set the dimensions that we'll need Google Analytics data for.
-    if settings.frequency == 'weekly'
-      UniqueVisitor.dimensions(:date)
-      Visit.dimensions(:date)
-
-    else
-      UniqueVisitor.dimensions(:date, :hour)
-      Visit.dimensions(:date, :hour)
-
-    end
   end
 
   # Extract the Account ID from a Web Property ID.
@@ -103,6 +98,26 @@ helpers do
 
     return user_profiles
   end
+
+  # The Legato class for getting the list of results to show in the graph.
+  def graph_query
+    settings.frequency == 'weekly' ? VisitByDate : VisitByHour
+  end
+
+  # Which Legato query do we use to get the Total Visits in this day/week?
+  def total_visits_query
+    settings.frequency == 'weekly' ? VisitByWeek : VisitByDate
+  end
+
+  # Which Legato query do we use to get the Total Visitors in this day/week?
+  def total_visitors_query
+    settings.frequency == 'weekly' ? VisitorByWeek : VisitorByDate
+  end
+
+  # Which Legato query do we use to get the Total Pageviews in this day/week?
+  def total_pageviews_query
+    settings.frequency == 'weekly' ? PageviewByWeek : PageviewByDate
+  end
 end
 
 
@@ -125,9 +140,9 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   set_frequency(frequency)
 
   printer_date = Date.iso8601(params[:local_delivery_time])
-  if frequency == 'weekly' && printer_date.cwday != 1
+  if frequency == 'weekly' && printer_date.cwday != settings.weekly_day 
     etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))
-    return 204, "It's not Monday, no weekly Analytics today."
+    return 204, "No weekly Analytics are delivered on this day of the week."
   end
 
   # The Google API refresh_token will be sent in params[:access_token]
@@ -148,14 +163,23 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   # Prepare the start/end dates and sorting.
   if settings.frequency == 'weekly'
     periods = [
-      {:start => (printer_date - 7), :end => (printer_date - 1)},
-      {:start => (printer_date - 14), :end => (printer_date - 8)}
+      # Google Analytics weeks run Sunday-Saturday.
+      # Last week (Sun-Sat).
+      {:start => (printer_date - 7 - settings.weekly_day),
+        :end => (printer_date - 1 - settings.weekly_day)},
+      # The week before last (Sun-Sat).
+      {:start => (printer_date - 14 - settings.weekly_day),
+        :end => (printer_date - 8 - settings.weekly_day)}
     ] 
     sort = ['date', 'hour']
   else
     periods = [
-      {:start => (printer_date - 1), :end => (printer_date - 1)},
-      {:start => (printer_date - 8), :end => (printer_date - 8)}
+      # Yesterday.
+      {:start => (printer_date - 1),
+        :end => (printer_date - 1)},
+      # The same weekday as yesterday, but a week earlier.
+      {:start => (printer_date - 8),
+        :end => (printer_date - 8)}
     ]
     sort = ['hour']
   end
@@ -167,14 +191,38 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   profiles.each do |profile|
     profile_data = {:name => profile.name,
                     :periods => [
-                      {:visits => nil}, {:visits => nil}
+                      # Yesterday / last week.
+                      {:visits => [],
+                        :total_visits=> 0, :total_visitors=> 0,
+                        :total_pageviews => 0},
+                      # The day before yesterday / the week before last.
+                      {:visits => [],
+                        :total_visits=> 0, :total_visitors=> 0,
+                        :total_pageviews => 0}
                     ]}
 
     periods.each_with_index do |period, idx|
-      profile_data[:periods][idx][:visits] = Visit.results(profile,
-                                                 :start_date => period[:start],
-                                                 :end_date => period[:end],
-                                                 :sort => sort)
+      # Hourly or daily data for the graph.
+      visits = graph_query.results(profile,
+                                   :start_date => period[:start],
+                                   :end_date => period[:end],
+                                    :sort => sort)
+      profile_data[:periods][idx][:visits] = visits
+
+      total_visits = total_visits_query.results(profile,
+                                               :start_date => period[:start],
+                                               :end_date => period[:end])
+      profile_data[:periods][idx][:total_visits] = total_visits.first.visits
+
+      total_visitors = total_visitors_query.results(profile,
+                                               :start_date => period[:start],
+                                               :end_date => period[:end])
+      profile_data[:periods][idx][:total_visitors] = total_visitors.first.visitors
+
+      total_pageviews = total_pageviews_query.results(profile,
+                                               :start_date => period[:start],
+                                               :end_date => period[:end])
+      profile_data[:periods][idx][:total_pageviews] = total_pageviews.first.pageviews
     end
     @profiles_data.push(profile_data)
   end

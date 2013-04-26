@@ -35,6 +35,10 @@
       <% end %> 
     </ul>
 
+    <h3>Totals</h2>
+    <p>Visits: <%= p[:periods][0][:total_visits] %> (<%= p[:periods][1][:total_visits] %>)</p>
+    <p>Visitors: <%= p[:periods][0][:total_visitors] %> (<%= p[:periods][1][:total_visitors] %>)</p>
+    <p>Pageviews: <%= p[:periods][0][:total_pageviews] %> (<%= p[:periods][1][:total_pageviews] %>)</p>
   <% end %>
 </body>
 </html>

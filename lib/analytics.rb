@@ -3,11 +3,10 @@ require 'legato'
 
 # Use one of these classes something like this:
 #
-# UniqueVisitor.dimensions(:date, :hour)
-# UniqueVisitor.results(user.profiles.first,
+# UniqueVisitorByDate.results(user.profiles.first,
 #                     :start_date => (Date.today - 8),
 #                     :end_date => (Date.today - 1),
-#                     :sort => ['date', 'hour']
+#                     :sort => ['date']
 #                   ).each { |result| p result }
 #
 #<OpenStruct date="20130417", visitors="411">
@@ -19,12 +18,51 @@ require 'legato'
 #<OpenStruct date="20130423", visitors="429">
 #<OpenStruct date="20130424", visitors="412">
 
-class UniqueVisitor
-    extend Legato::Model
-    metrics :visitors # Actually, unique visitors.
+class PageviewByDate
+  extend Legato::Model
+  metrics :pageviews
+  dimensions :date
 end
 
-class Visit
-    extend Legato::Model
-    metrics :visits
+class PageviewByWeek
+  extend Legato::Model
+  metrics :pageviews
+  dimensions :week
+end
+
+class VisitorByHour
+  extend Legato::Model
+  metrics :visitors # Actually, unique visitors.
+  dimensions :date, :hour
+end
+
+class VisitorByDate
+  extend Legato::Model
+  metrics :visitors # Actually, unique visitors.
+  dimensions :date
+end
+
+class VisitorByWeek
+  extend Legato::Model
+  metrics :visitors # Actually, unique visitors.
+  dimensions :week
+end
+
+
+class VisitByHour
+  extend Legato::Model
+  metrics :visits
+  dimensions :date, :hour
+end
+
+class VisitByDate
+  extend Legato::Model
+  metrics :visits
+  dimensions :date
+end
+
+class VisitByWeek
+  extend Legato::Model
+  metrics :visits
+  dimensions :week
 end
