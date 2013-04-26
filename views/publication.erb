@@ -2,6 +2,8 @@
 <html>
 <head>
   <title>Google Analytics (<%= settings.frequency.capitalize %>)</title>
+  <script src="../../js/d3.min.js"></script>
+  <script src="../../js/rickshaw.min.js"></script>
   <style type="text/css">
     body {
       background: #fff;
@@ -12,11 +14,12 @@
       font-family: Arial, sans-serif;
     }
   </style>
+
 </head>
 <body>
   <h1>Google Analytics (<%= settings.frequency.capitalize %>)</h1>
 
-  <% @profiles_data.each do |p| %>
+  <% @profiles_data.each_with_index do |p, idx| %>
     <h2><%= p[:name] %></h2>
 
     <% if p[:periods][0][:start_date] == p[:periods][0][:end_date] %>
@@ -26,6 +29,8 @@
     <% end %>
 
     <h3>Visits</h3>
+
+    <div id="chart-<%= idx %>"></div>
 
     <h4><% if settings.frequency == 'weekly' %>Last week<% else %>Yesterday<% end %></h4>
     <ul>
@@ -70,5 +75,36 @@
       <% end %>
       <%= p[:periods][0][:total_pageviews] %> (<%= p[:periods][1][:total_pageviews] %>)</p>
   <% end %>
+
+
+
+  <script>
+
+  <% @profiles_data.each_with_index do |p, idx| %>
+    var graph = new Rickshaw.Graph({
+      element: document.querySelector("#chart-<%= idx %>"),
+      width: 350,
+      height: 100,
+      renderer: 'line',
+      series: [{
+        data: [ 
+          <% p[:periods][1][:visits].each_with_index do |v, col| %>
+            { x: <%= col %>, y: <%= v.visits %> },
+          <% end %>
+          ],
+          color: '#999999'
+      },{
+        data: [ 
+          <% p[:periods][0][:visits].each_with_index do |v, col| %>
+            { x: <%= col %>, y: <%= v.visits %> },
+          <% end %>
+          ],
+          color: '#000000'
+      }]
+    });
+    graph.render();
+  <% end %>
+
+  </script>
 </body>
 </html>
