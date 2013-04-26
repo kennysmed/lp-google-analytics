@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Analytics (<%= settings.period.capitalize %>)</title>
+  <title>Google Analytics (<%= settings.frequency.capitalize %>)</title>
   <style type="text/css">
     body {
       background: #fff;
@@ -14,10 +14,27 @@
   </style>
 </head>
 <body>
-  <p>Doing <%= settings.period %>.</p>
+  <p>Doing <%= settings.frequency %>.</p>
 
-  <p>Access token <%= @access_token %>.</p>
-  <p>Refresh token <%= @refresh_token %>.</p>
+  <% @profiles_data.each do |p| %>
+    <h2><%= p.name %></h2>
 
+    <h3>Visits</h3>
+
+    <h4><% if settings.frequency == 'weekly' %>Last week<% else %>Yesterday<% end %></h4>
+    <ul>
+      <% p.periods[0][:visits].each do |v| %>
+        <li><%= v.date %>: <%= v.visits %></li>
+      <% end %> 
+    </ul>
+
+    <h4>Previous</h4>
+    <ul>
+      <% p.periods[1][:visits].each do |v| %>
+        <li><%= v.date %>: <%= v.visits %></li>
+      <% end %> 
+    </ul>
+
+  <% end %>
 </body>
 </html>

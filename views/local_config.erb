@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Analytics (<%= settings.period.capitalize %>)</title>
+  <title>Google Analytics (<%= settings.frequency.capitalize %>)</title>
   <style type="text/css">
     body {
       background: #fff;
@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <h1>Google Analytics on Little Printer (<%= settings.period.capitalize %>)</title></h1>
+  <h1>Google Analytics on Little Printer (<%= settings.frequency.capitalize %>)</title></h1>
 
   <% if settings.maximum_profiles == 1 %>
     <p>Please choose one of your Google Analytics Profiles.</p>
@@ -24,7 +24,7 @@
   <% end %>
 
 
-  <form method="post" action="<%= url('/'+settings.period+'/local_config/') %>">
+  <form method="post" action="<%= url('/'+settings.frequency+'/local_config/') %>">
     <ul>
     <% @accounts_properties_profiles.each do |a_id, a_data| %>
       <% if a_data['properties'].length > 0 %>

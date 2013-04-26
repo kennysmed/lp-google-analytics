@@ -28,24 +28,24 @@ configure do
   # subscribe to in one publication?
   set :maximum_profiles, 3
 
-  # The different periods we can display results for.
-  # The periods should be options within the URL route matching for each
+  # The different frequencies we can display results for.
+  # The frequencies should be options within the URL route matching for each
   # endpoint, eg:
-  #   get %r{/(daily|weekly)/edition/} do |period|
-  set :valid_periods, ['daily', 'weekly']
+  #   get %r{/(daily|weekly)/edition/} do |frequency|
+  set :valid_frequencies, ['daily', 'weekly']
 
   # The default, which can be changed depending on URL.
-  set :period, 'daily'
+  set :frequency, 'daily'
 end
 
 
 helpers do
-  # Set the `period` setting to `period` if it's valid. Else, ignore.
-  def set_period(period)
-    settings.period = period if settings.valid_periods.include?(period)
+  # Set the `frequency` setting to `frequency` if it's valid. Else, ignore.
+  def set_frequency(frequency)
+    settings.frequency = frequency if settings.valid_frequencies.include?(frequency)
 
     # Set the dimensions that we'll need Google Analytics data for.
-    if settings.period == 'weekly'
+    if settings.frequency == 'weekly'
       UniqueVisitor.dimensions(:date)
       Visit.dimensions(:date)
 
@@ -106,8 +106,8 @@ helpers do
 end
 
 
-get %r{/(daily|weekly)/meta.json} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/meta.json} do |frequency|
+  set_frequency(frequency)
   content_type :json
   erb :meta
 end
@@ -119,9 +119,16 @@ end
 #   params[:access_token] will be the Google Analytics refresh_token.
 #   params[:profiles] will be a space-separated list of Google Analytics
 #     Profile IDs.
+#   params[:local_delivery_time] An ISO 8601 timestamp of the printer's time.
 # 
-get %r{/(daily|weekly)/edition/} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/edition/} do |frequency|
+  set_frequency(frequency)
+
+  printer_date = Date.iso8601(params[:local_delivery_time])
+  if frequency == 'weekly' && printer_date.cwday != 1
+    etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))
+    return 204, "It's not Monday, no weekly Analytics today."
+  end
 
   # The Google API refresh_token will be sent in params[:access_token]
   # Use that to get a new access_token_obj.
@@ -138,20 +145,35 @@ get %r{/(daily|weekly)/edition/} do |period|
 
   # TODO: If profile is length==0, then display message to user?
 
+  # Prepare the start/end dates and sorting.
+  if settings.frequency == 'weekly'
+    periods = [
+      {:start => (printer_date - 7), :end => (printer_date - 1)},
+      {:start => (printer_date - 14), :end => (printer_date - 8)}
+    ] 
+    sort = ['date', 'hour']
+  else
+    periods = [
+      {:start => (printer_date - 1), :end => (printer_date - 1)},
+      {:start => (printer_date - 8), :end => (printer_date - 8)}
+    ]
+    sort = ['hour']
+  end
+
   # This is what we'll put all the data in for the template.
   # It'll contain one hash for each Profile.
   @profiles_data = []
 
-
-  # Calculate start_date
-  # Calculate end_date
-  # Set sort base on period.
-
   profiles.each do |profile|
-    profile_data = {}
-    # profile_data['visits'] = Visit.results(profile,
-    #                                       :start_date => )
+    profile_data = {:name => profile.name}
 
+    periods.each_with_index do |period, idx|
+      profile_data[:periods][idx][:visits] = Visit.results(profile,
+                                                 :start_date => period[:start],
+                                                 :end_date => period[:end],
+                                                 :sort => sort)
+    end
+    @profiles_data.push(profile_data)
   end
 
   erb :publication
@@ -162,8 +184,8 @@ end
 #   params['return_url'] will be the publication-specific URL we return the
 #     user to after authenticating.
 #
-get %r{/(daily|weekly)/configure/} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/configure/} do |frequency|
+  set_frequency(frequency)
   return 400, 'No return_url parameter was provided' if !params['return_url']
 
   # Save the return URL so we still have it after authentication.
@@ -172,7 +194,7 @@ get %r{/(daily|weekly)/configure/} do |period|
   begin
     redirect auth_client.auth_code.authorize_url(
       :scope => 'https://www.googleapis.com/auth/analytics.readonly',
-      :redirect_uri => url("/#{settings.period}/return/"),
+      :redirect_uri => url("/#{settings.frequency}/return/"),
       :access_type => 'offline',
       :approval_prompt => 'force'
     )
@@ -184,13 +206,13 @@ end
 # We can now get the access_token and refresh_token from Google.
 # Then we can let the user select which of their Profiles (if more than one)
 # that they want to use.
-get %r{/(daily|weekly)/return/} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/return/} do |frequency|
+  set_frequency(frequency)
 
   return 500, "No access token was returned by Google" if !params[:code]
 
   access_token_obj = auth_client.auth_code.get_token(params[:code], {
-                      :redirect_uri => url("/#{settings.period}/return/"),
+                      :redirect_uri => url("/#{settings.frequency}/return/"),
                       :token_method => :post
                     })
   # TODO: Error checking.
@@ -204,14 +226,14 @@ get %r{/(daily|weekly)/return/} do |period|
   else
     session[:refresh_token] = access_token_obj.refresh_token
     session[:access_token] = access_token_obj.token
-    redirect url("/#{settings.period}/local_config/")
+    redirect url("/#{settings.frequency}/local_config/")
   end
 end
 
 
 # Display the form for choosing which Analytics Profile(s) to use.
-get %r{/(daily|weekly)/local_config/} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/local_config/} do |frequency|
+  set_frequency(frequency)
 
   # TODO: Error checking.
   # If access_token has expired, try session[:refresh_token]?
@@ -230,8 +252,8 @@ end
 # The user has come here after submitting the form for selecting one or more
 # Google Analytics profiles.
 # If they have chosen one or more, then we can return them to bergcloud.com
-post %r{/(daily|weekly)/local_config/} do |period|
-  set_period(period)
+post %r{/(daily|weekly)/local_config/} do |frequency|
+  set_frequency(frequency)
 
   if params[:profiles] && params[:profiles].length
     # The user selected some profile(s).
@@ -242,17 +264,17 @@ post %r{/(daily|weekly)/local_config/} do |period|
   else
     # No profiles submitted. Re-show form.
     session[:form_error] = "Plesae select a Profile"
-    redirect url("/#{settings.period}/local_config/")
+    redirect url("/#{settings.frequency}/local_config/")
   end
 end
 
 
-get %r{/(daily|weekly)/sample/} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/sample/} do |frequency|
+  set_frequency(frequency)
   erb :publication
 end
 
 
-get %r{/(daily|weekly)/validate_config/} do |period|
-  set_period(period)
+get %r{/(daily|weekly)/validate_config/} do |frequency|
+  set_frequency(frequency)
 end
