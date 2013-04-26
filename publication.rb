@@ -189,16 +189,17 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   @profiles_data = []
 
   profiles.each do |profile|
-    profile_data = {:name => profile.name,
-                    :periods => []}
+    profile_data = {:name => profile.name, :periods => []}
 
     # So we first gather the data for yesterday or last week.
     # Then we gather the data for the same day the previous week / the week before last.
     periods.each do |period|
       # The structure we fill with data for this period.
       period_data = {:visits => [],
-                        :total_visits=> 0, :total_visitors=> 0,
-                        :total_pageviews => 0} 
+                      :total_visits=> 0,
+                      :total_visitors=> 0,
+                      :total_pageviews => 0,
+                      :start_date => period[:start], :end_date => period[:end]} 
 
       # Hourly or daily data for the graph.
       period_data[:visits] = graph_query.results(profile,

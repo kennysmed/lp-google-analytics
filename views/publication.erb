@@ -14,10 +14,16 @@
   </style>
 </head>
 <body>
-  <p>Doing <%= settings.frequency %>.</p>
+  <h1>Google Analytics (<%= settings.frequency.capitalize %>)</h1>
 
   <% @profiles_data.each do |p| %>
     <h2><%= p[:name] %></h2>
+
+    <% if p[:periods][0][:start_date] == p[:periods][0][:end_date] %>
+      <p>For <%= p[:periods][0][:start_date] %>.</p>
+    <% else %>
+      <p>From <%= p[:periods][0][:start_date] %> to <%= p[:periods][0][:end_date] %>.</p>
+    <% end %>
 
     <h3>Visits</h3>
 
@@ -36,9 +42,33 @@
     </ul>
 
     <h3>Totals</h2>
-    <p>Visits: <%= p[:periods][0][:total_visits] %> (<%= p[:periods][1][:total_visits] %>)</p>
-    <p>Visitors: <%= p[:periods][0][:total_visitors] %> (<%= p[:periods][1][:total_visitors] %>)</p>
-    <p>Pageviews: <%= p[:periods][0][:total_pageviews] %> (<%= p[:periods][1][:total_pageviews] %>)</p>
+    <p>Visits: 
+      <% if p[:periods][0][:total_visits] > p[:periods][1][:total_visits] %>
+      ^
+      <% elsif p[:periods][0][:total_visits] < p[:periods][1][:total_visits] %>
+      v
+      <% else %>
+      –
+      <% end %>
+      <%= p[:periods][0][:total_visits] %> (<%= p[:periods][1][:total_visits] %>)</p>
+    <p>Visitors: 
+      <% if p[:periods][0][:total_visitors] > p[:periods][1][:total_visitors] %>
+      ^
+      <% elsif p[:periods][0][:total_visitors] < p[:periods][1][:total_visitors] %>
+      v
+      <% else %>
+      –
+      <% end %>
+      <%= p[:periods][0][:total_visitors] %> (<%= p[:periods][1][:total_visitors] %>)</p>
+    <p>Pageviews:
+      <% if p[:periods][0][:total_pageviews] > p[:periods][1][:total_pageviews] %>
+      ^
+      <% elsif p[:periods][0][:total_pageviews] < p[:periods][1][:total_pageviews] %>
+      v
+      <% else %>
+      –
+      <% end %>
+      <%= p[:periods][0][:total_pageviews] %> (<%= p[:periods][1][:total_pageviews] %>)</p>
   <% end %>
 </body>
 </html>
