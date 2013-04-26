@@ -201,26 +201,25 @@ get %r{/(daily|weekly)/edition/} do |frequency|
                         :total_pageviews => 0} 
 
       # Hourly or daily data for the graph.
-      visits = graph_query.results(profile,
-                                   :start_date => period[:start],
-                                   :end_date => period[:end],
+      period_data[:visits] = graph_query.results(profile,
+                                    :start_date => period[:start],
+                                    :end_date => period[:end],
                                     :sort => sort)
-      period_data[:visits] = visits
 
-      total_visits = total_visits_query.results(profile,
-                                               :start_date => period[:start],
-                                               :end_date => period[:end])
-      period_data[:total_visits] = total_visits.first.visits
+      period_data[:total_visits] = total_visits_query.results(profile,
+                                    :start_date => period[:start],
+                                    :end_date => period[:end]
+                                    ).first.visits
 
-      total_visitors = total_visitors_query.results(profile,
-                                               :start_date => period[:start],
-                                               :end_date => period[:end])
-      period_data[:total_visitors] = total_visitors.first.visitors
+      period_data[:total_visitors] = total_visitors_query.results(profile,
+                                    :start_date => period[:start],
+                                    :end_date => period[:end]
+                                    ).first.visitors
 
-      total_pageviews = total_pageviews_query.results(profile,
-                                               :start_date => period[:start],
-                                               :end_date => period[:end])
-      period_data[:total_pageviews] = total_pageviews.first.pageviews
+      period_data[:total_pageviews] = total_pageviews_query.results(profile,
+                                    :start_date => period[:start],
+                                    :end_date => period[:end]
+                                    ).first.pageviews
 
       profile_data[:periods].push(period_data)
     end
