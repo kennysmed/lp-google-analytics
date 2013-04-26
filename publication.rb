@@ -190,39 +190,39 @@ get %r{/(daily|weekly)/edition/} do |frequency|
 
   profiles.each do |profile|
     profile_data = {:name => profile.name,
-                    :periods => [
-                      # Yesterday / last week.
-                      {:visits => [],
-                        :total_visits=> 0, :total_visitors=> 0,
-                        :total_pageviews => 0},
-                      # The day before yesterday / the week before last.
-                      {:visits => [],
-                        :total_visits=> 0, :total_visitors=> 0,
-                        :total_pageviews => 0}
-                    ]}
+                    :periods => []}
 
-    periods.each_with_index do |period, idx|
+    # So we first gather the data for yesterday or last week.
+    # Then we gather the data for the same day the previous week / the week before last.
+    periods.each do |period|
+      # The structure we fill with data for this period.
+      period_data = {:visits => [],
+                        :total_visits=> 0, :total_visitors=> 0,
+                        :total_pageviews => 0} 
+
       # Hourly or daily data for the graph.
       visits = graph_query.results(profile,
                                    :start_date => period[:start],
                                    :end_date => period[:end],
                                     :sort => sort)
-      profile_data[:periods][idx][:visits] = visits
+      period_data[:visits] = visits
 
       total_visits = total_visits_query.results(profile,
                                                :start_date => period[:start],
                                                :end_date => period[:end])
-      profile_data[:periods][idx][:total_visits] = total_visits.first.visits
+      period_data[:total_visits] = total_visits.first.visits
 
       total_visitors = total_visitors_query.results(profile,
                                                :start_date => period[:start],
                                                :end_date => period[:end])
-      profile_data[:periods][idx][:total_visitors] = total_visitors.first.visitors
+      period_data[:total_visitors] = total_visitors.first.visitors
 
       total_pageviews = total_pageviews_query.results(profile,
                                                :start_date => period[:start],
                                                :end_date => period[:end])
-      profile_data[:periods][idx][:total_pageviews] = total_pageviews.first.pageviews
+      period_data[:total_pageviews] = total_pageviews.first.pageviews
+
+      profile_data[:periods].push(period_data)
     end
     @profiles_data.push(profile_data)
   end
