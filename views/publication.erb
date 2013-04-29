@@ -14,6 +14,37 @@
       font-family: Arial, sans-serif;
     }
   </style>
+  <script>
+
+  window.onload = function() {
+
+    <% @profiles_data.each_with_index do |p, idx| %>
+      var graph = new Rickshaw.Graph({
+        element: document.querySelector("#chart-<%= idx %>"),
+        width: 350,
+        height: 100,
+        renderer: 'line',
+        series: [{
+          data: [ 
+            <% p[:periods][1][:visits].each_with_index do |v, col| %>
+              { x: <%= col %>, y: <%= v.visits %> },
+            <% end %>
+            ],
+            color: '#999999'
+        },{
+          data: [ 
+            <% p[:periods][0][:visits].each_with_index do |v, col| %>
+              { x: <%= col %>, y: <%= v.visits %> },
+            <% end %>
+            ],
+            color: '#000000'
+        }]
+      });
+      graph.render();
+    <% end %>
+  };
+
+  </script>
 
 </head>
 <body>
@@ -82,33 +113,5 @@
 
 
 
-  <script>
-
-  <% @profiles_data.each_with_index do |p, idx| %>
-    var graph = new Rickshaw.Graph({
-      element: document.querySelector("#chart-<%= idx %>"),
-      width: 350,
-      height: 100,
-      renderer: 'line',
-      series: [{
-        data: [ 
-          <% p[:periods][1][:visits].each_with_index do |v, col| %>
-            { x: <%= col %>, y: <%= v.visits %> },
-          <% end %>
-          ],
-          color: '#999999'
-      },{
-        data: [ 
-          <% p[:periods][0][:visits].each_with_index do |v, col| %>
-            { x: <%= col %>, y: <%= v.visits %> },
-          <% end %>
-          ],
-          color: '#000000'
-      }]
-    });
-    graph.render();
-  <% end %>
-
-  </script>
 </body>
 </html>
