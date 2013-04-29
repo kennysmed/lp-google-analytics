@@ -1,9 +1,15 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
 <html>
 <head>
   <title>Google Analytics (<%= settings.frequency.capitalize %>)</title>
+<% 
+=begin %>   
   <script src="../../js/d3.min.js"></script>
   <script src="../../js/rickshaw.min.js"></script>
+<% 
+=end %>
+  <script src="../../js/d3.v3.min.js"></script>
   <style type="text/css">
     body {
       background: #fff;
@@ -13,15 +19,84 @@
       margin: 0;
       font-family: Arial, sans-serif;
     }
+    .chart {
+      width: 360px;
+      height: 180px;
+    }
+    .line {
+      fill: none;
+      stroke: black;
+      stroke-width: 2px;
+    }
   </style>
   <script>
+    window.onload = function() {
+      // Overall width/height available.
+      var outer_width = 360;
+      var outer_height = 180;
 
-  window.document.onload = function() {
-    document.getElementById('document-onload').innerText = "DOCUMENT ONLOAD";
-  };
+      // Area around the actual chart (space for axes numbers etc).
+      var margin = {top: 0, right: 0, bottom: 0, left: 0};
+
+      // Area of the chart itself (not including space for axes numbers).
+      var inner_width = outer_width - margin.left - margin.right;
+      var inner_height = outer_height - margin.top - margin.bottom;
+
+      <% if settings.frequency == 'daily' %>
+        var parseDate = d3.time.format("%Y%m%d %H%M").parse;
+      <% else %>
+        var parseDate = d3.time.format("%Y%m%d").parse;
+      <% end %>
+
+      // The scales.
+      var x = d3.time.scale()
+          .range([0, inner_width]);
+
+      var y = d3.scale.linear()
+          .range([inner_height, 0]);
+
+      var line = d3.svg.line()
+          .x(function(d) { return x(d.date); })
+          .y(function(d) { return y(d.visits); });
+
+      <% @profiles_data.each_with_index do |p, idx| %>
+
+        // The main chart area.
+        var svg = d3.select('#chart-<%= idx %>').append('svg')
+            .attr('width', outer_width)
+            .attr('height', outer_height)
+          .append('g')
+            .attr('transform',
+                            'translate(' + margin.left + ',' + margin.top + ')');
+
+        var data = [];
+
+        <% p[:periods][1][:visits].each do |v| %>
+          data.push({
+            date: "<%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>00<% end %>",
+            visits: <%= v.visits %>
+          });
+        <% end %>
+        console.log(data);
+
+        data.forEach(function(d) {
+          d.date = parseDate(d.date);
+          d.visits = +d.visits;
+        });
+
+        x.domain(d3.extent(data, function(d) { return d.date; }));
+        y.domain(d3.extent(data, function(d) { return d.visits; }));
+
+        svg.append('path')
+          .datum(data)
+          .attr('class', 'line')
+          .attr('d', line);
+      <% end %>
+    };
+
+<% 
+=begin %>
   window.onload = function() {
-    document.getElementById('window-onload').innerText = "WINDOW ONLOAD";
-
     <% @profiles_data.each_with_index do |p, idx| %>
       var graph = new Rickshaw.Graph({
         element: document.querySelector("#chart-<%= idx %>"),
@@ -47,6 +122,8 @@
       graph.render();
     <% end %>
   };
+<% 
+=end %>
 
   </script>
 
@@ -54,9 +131,6 @@
 <body>
   <h1>Google Analytics (<%= settings.frequency.capitalize %>)</h1>
 
-  <p id="window-onload"></p>
-  <p id="document-onload"></p>
-   
   <% @profiles_data.each_with_index do |p, idx| %>
     <h2><%= p[:name] %></h2>
 
@@ -68,7 +142,7 @@
 
     <h3>Visits</h3>
 
-    <div id="chart-<%= idx %>"></div>
+    <div id="chart-<%= idx %>" class="chart"></div>
 
 <% 
 =begin %>
