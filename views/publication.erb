@@ -32,6 +32,8 @@
 
     <div id="chart-<%= idx %>"></div>
 
+<% 
+=begin %>
     <h4><% if settings.frequency == 'weekly' %>Last week<% else %>Yesterday<% end %></h4>
     <ul>
       <% p[:periods][0][:visits].each do |v| %>
@@ -45,6 +47,8 @@
         <li><%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>:00<% end %> – <%= v.visits %></li>
       <% end %> 
     </ul>
+<% 
+=end %>
 
     <h3>Totals</h2>
     <p>Visits: 
