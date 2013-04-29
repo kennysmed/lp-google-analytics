@@ -227,6 +227,11 @@ get %r{/(daily|weekly)/edition/} do |frequency|
     @profiles_data.push(profile_data)
   end
 
+
+  # TODO: Change etag back to this first one for when it's live.
+  # etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))
+  # Testing, always changing etag:
+  etag Digest::MD5.hexdigest(params[:access_token] + Time.now.strftime('%M%H-%d%m%Y'))
   erb :publication
 end
 
