@@ -78,7 +78,7 @@
     window.onload = function() {
 
       draw();
-      
+
       // Overall width/height available.
       var outer_width = 360;
       var outer_height = 180;
@@ -125,7 +125,6 @@
             visits: <%= v.visits %>
           });
         <% end %>
-        console.log(data);
 
         data.forEach(function(d) {
           d.date = parseDate(d.date);
