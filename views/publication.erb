@@ -17,10 +17,14 @@
       width: 360px;
       height: 180px;
     }
-    .line {
+    .line-0,
+    .line-1 {
       fill: none;
-      stroke: black;
-      stroke-width: 2px;
+      stroke: #999;
+      stroke-width: 3px;
+    }
+    .line-1 {
+      stroke: #000;
     }
 
   </style>
@@ -57,38 +61,62 @@
           .x(function(d) { return x(d.date); })
           .y(function(d) { return y(d.visits); });
 
-      <% @profiles_data.each_with_index do |p, idx| %>
-
-        // The main chart area.
-        var svg = d3.select('#chart-<%= idx %>').append('svg')
+      // Draw a single chart for a Profile.
+      // See the block after this function for what chart_data looks like.
+      var draw_chart = function(chart_data) {
+        // Create the main chart area.
+        var svg = d3.select('#chart-'+chart_data.number).append('svg')
             .attr('width', outer_width)
             .attr('height', outer_height)
           .append('g')
             .attr('transform',
                             'translate(' + margin.left + ',' + margin.top + ')');
 
-        var data = [];
-
-        <% p[:periods][1][:visits].each do |v| %>
-          data.push({
-            date: "<%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>00<% end %>",
-            visits: <%= v.visits %>
+        // Draw each line.
+        // In reverse order, because we need to draw the oldest Period first.
+        // So line_idx = 0 is the oldest Period.
+        // line_idx = 1 is yesterday/last week.
+        chart_data.lines.reverse().forEach(function(line_data, line_idx) {
+          line_data.forEach(function(d) {
+            d.date = parseDate(d.date);
+            d.visits = +d.visits;
           });
-        <% end %>
-        console.log(data);
 
-        data.forEach(function(d) {
-          d.date = parseDate(d.date);
-          d.visits = +d.visits;
+          x.domain(d3.extent(line_data, function(d) { return d.date; }));
+          y.domain(d3.extent(line_data, function(d) { return d.visits; }));
+
+          svg.append('path')
+            .datum(line_data)
+            .attr('class', 'line-'+line_idx)
+            .attr('d', line);
+
         });
+      };
 
-        x.domain(d3.extent(data, function(d) { return d.date; }));
-        y.domain(d3.extent(data, function(d) { return d.visits; }));
+      <%# We generate a chart for each Profile: %>
+      <% @profiles_data.each_with_index do |p, profile_idx| %>
+        var chart_data = {
+          // Will be 0-based number of this chart on the page:
+          number: <%= profile_idx %>,
+          // Will be an array of hashes, each hash having 'date' and 'visits'
+          // keys:
+          lines: []
+        };
 
-        svg.append('path')
-          .datum(data)
-          .attr('class', 'line')
-          .attr('d', line);
+        <%# For each Period (eg, yesterday, last week), we draw a line: %>
+        <% p[:periods].each_with_index do |period, period_idx| %>
+          chart_data.lines.push([]);
+
+          <%# For each Visit in a Period, we add a point on the line: %>
+          <% period[:visits].each do |v| %>
+            chart_data.lines[<%= period_idx %>].push({
+              date: "<%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>00<% end %>",
+              visits: <%= v.visits %>
+            });
+          <% end %>
+        <% end %>
+
+        draw_chart(chart_data);
       <% end %>
     };
 
