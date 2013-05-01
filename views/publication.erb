@@ -19,25 +19,29 @@
     }
     .line {
       fill: none;
-      stroke: #000;
       stroke-width: 3px;
     }
-
-    /* OLD: */
-    .line-1 {
+    .line-most-recent {
       stroke: #000;
     }
-    .chart .axis-y .tick line {
-        stroke: #ddd;
+    .line-least-recent {
+      stroke: #999;
     }
-    .chart .axis-x path {
-      /* The baseline. */
+
+    /* The x and y axes themselves. */
+    .axis-y path {
       stroke: #000;
       shape-rendering: crispEdges;
     }
-    .chart .axis-x .tick line {
-      /* The individual ticks. */
+    /* Horizontal lines behind the graph. */
+    .axis-y .tick line {
       stroke: #000;
+      shape-rendering: crispEdges;
+    }
+    /* The individual ticks. */
+    .axis-x .tick line {
+      stroke: #000;
+      shape-rendering: crispEdges;
     }
 
   </style>
@@ -48,11 +52,11 @@
   <script>
     window.onload = function() {
 
-      function draw_chart(chart_number, data) {
+      function draw_chart(chart_number, chart_data) {
         // Size of whole chart, including axes and space around it:
         var outer_width = 384;
         var outer_height = 180;
-        var margin = {top: 0, right: 10, bottom: 30, left: 10};
+        var margin = {top: 0, right: 10, bottom: 30, left: 20};
         // Size of the area of the chart with the actual lines on:
         var inner_width = outer_width - margin.left - margin.right;
         var inner_height = outer_height - margin.top - margin.bottom;
@@ -68,80 +72,102 @@
 
         var y = d3.scale.linear().range([inner_height, 0]);
 
-        var color = d3.scale.ordinal();
+        // I don't understand this one...
+        var scale = d3.scale.ordinal();
 
+        // The axes.
         var xAxis = d3.svg.axis().scale(x).orient('bottom')
+                      .tickSize(6, 0, 0)
                       .tickFormat(function(d) { return x_tick_format(d); });
 
-        var yAxis = d3.svg.axis().scale(y).orient('left');
+        var yAxis = d3.svg.axis().scale(y).orient('left')
+                      .tickSize(-inner_width, 0, 0)
+                      .ticks(5);
 
         var line = d3.svg.line()
                     .interpolate('basis')
                     .x(function(d) { return x(d.date); })
                     .y(function(d) { return y(d.visits ); });
 
+        // The main chart area.
         var svg = d3.select('#chart-'+chart_number).append('svg')
             .attr('width', outer_width)
             .attr('height', outer_height)
           .append('g')
             .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-        d3plot(data);
+        // Now draw the chart's axes and lines.
+        d3plot(chart_data);
 
-        function d3plot(data) {
-          color.domain(d3.keys(data[0]).filter(
+        function d3plot(chart_data) {
+          // I don't know...
+          // Something like extracting the names of the periods.
+          scale.domain(d3.keys(chart_data[0]).filter(
                                   function(key) { return key !== 'date'; }));
 
-          data.forEach(function(d) {
+          // Turn the date strings into Date objects.
+          chart_data.forEach(function(d) {
             d.date = parseDate(d.date);
           });
 
-          var periods = color.domain().map(function(name) {
+          // Change from the chart_data format:
+          // [{date:Date, 'least-recent':7, 'most-recent':12}, {}...]
+          // to a different format for periods:
+          // [
+          //  {name:'least-recent', values:[{date:Date, visits:7}, {}...]},
+          //  {name:'most-recent', values:[{date:Date, visits:7}, {}...]}
+          // ]
+          var periods = scale.domain().map(function(name) {
             return {
               name: name,
-              values: data.map(function(d) {
+              values: chart_data.map(function(d) {
                 return {date: d.date, visits: +d[name]};
               })
             };
           });
 
-          x.domain(d3.extent(data, function(d) { return d.date; }));
+          // Set the min and max of the x axis.
+          x.domain(d3.extent(chart_data, function(d) { return d.date; }));
 
+          // Set the min and max of the y axis.
           y.domain([
             0,
             d3.max(periods, function(c) {
               return d3.max(c.values, function(v) {return v.visits; }); })
           ]);
 
+          // Draw the two axes we prepared earlier.
           svg.append('g')
-              .attr('class', 'x axis')
+              .attr('class', 'axis axis-x')
               .attr('transform', 'translate(0,' + inner_height + ')')
               .call(xAxis);
 
+          svg.append('g')
+              .attr('class', 'axis axis-y')
+              .call(yAxis);
+
+          // Erm... preparing to draw the lines?
           var period = svg.selectAll('.period')
               .data(periods)
             .enter().append('g')
               .attr('class', 'period');
             
-
-          var line_colors = {
-            'period0': '#000000',
-            'period1': '#999999'
-          };
+          // Draw each of the lines.
           period.append('path')
-              .attr('class', 'line')
-              .attr('d', function(d) { return line(d.values); })
-              .style('stroke', function(d) { return line_colors[d.name]; });
+              .attr('class', function(d) { return 'line line-'+d.name; })
+              .attr('d', function(d) { return line(d.values); });
         };
       };
 
       <% @profiles_data.each_with_index do |p, profile_idx| %>
         var data = [];
 
-        <% p[:periods][0][:visits].each_with_index do |v, visit_idx| %>
+        <% p[:periods][1][:visits].each_with_index do |v, visit_idx| %>
           data.push({
-            'period0': <%= v.visits %>,
-            'period1': <%= p[:periods][1][:visits].to_a[visit_idx].visits %>,
+            // These need to be this way around, so that the least recent
+            // line is drawn first, and then the most recent on top.
+            'least-recent': <%= v.visits %>,
+            'most-recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
             'date': '<%= v.hour %>00'
           });
         <% end %>
