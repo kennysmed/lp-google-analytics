@@ -17,12 +17,13 @@
       width: 360px;
       height: 180px;
     }
-    .line-0,
-    .line-1 {
+    .line {
       fill: none;
-      stroke: #999;
+      stroke: #000;
       stroke-width: 3px;
     }
+
+    /* OLD: */
     .line-1 {
       stroke: #000;
     }
@@ -46,114 +47,107 @@
 
   <script>
     window.onload = function() {
-      // Overall width/height available.
-      var outer_width = 384;
-      var outer_height = 180;
 
-      // Area around the actual chart (space for axes numbers etc).
-      var margin = {top: 0, right: 10, bottom: 30, left: 10};
+      function draw_chart(chart_number, data) {
+        // Size of whole chart, including axes and space around it:
+        var outer_width = 384;
+        var outer_height = 180;
+        var margin = {top: 0, right: 10, bottom: 30, left: 10};
+        // Size of the area of the chart with the actual lines on:
+        var inner_width = outer_width - margin.left - margin.right;
+        var inner_height = outer_height - margin.top - margin.bottom;
 
-      // Area of the chart itself (not including space for axes numbers).
-      var inner_width = outer_width - margin.left - margin.right;
-      var inner_height = outer_height - margin.top - margin.bottom;
+        // Turn a date/time string into a Date object.
+        var parseDate = d3.time.format('%H%M').parse;
 
-      <% if settings.frequency == 'daily' %>
-        var parseDate = d3.time.format("%Y%m%d %H%M").parse;
-      <% else %>
-        var parseDate = d3.time.format("%Y%m%d").parse;
-      <% end %>
+        // How we want the X-Axis dates/times formatted.
+        var x_tick_format = d3.time.format('%H');
 
-      // The scales.
-      var x = d3.time.scale()
-          .range([0, inner_width]);
+        // The scales.
+        var x = d3.time.scale().range([0, inner_width]);
 
-      var y = d3.scale.linear()
-          .range([inner_height, 0]);
+        var y = d3.scale.linear().range([inner_height, 0]);
 
-      var line = d3.svg.line()
-          .x(function(d) { return x(d.date); })
-          .y(function(d) { return y(d.visits); });
+        var color = d3.scale.ordinal();
 
-      // Draw a single chart for a Profile.
-      // See the block after this function for what chart_data looks like.
-      var draw_chart = function(chart_data) {
-        // Create the main chart area.
-        var svg = d3.select('#chart-'+chart_data.number).append('svg')
+        var xAxis = d3.svg.axis().scale(x).orient('bottom')
+                      .tickFormat(function(d) { return x_tick_format(d); });
+
+        var yAxis = d3.svg.axis().scale(y).orient('left');
+
+        var line = d3.svg.line()
+                    .interpolate('basis')
+                    .x(function(d) { return x(d.date); })
+                    .y(function(d) { return y(d.visits ); });
+
+        var svg = d3.select('#chart-'+chart_number).append('svg')
             .attr('width', outer_width)
             .attr('height', outer_height)
           .append('g')
-            .attr('transform',
-                          'translate(' + margin.left + ',' + margin.top + ')');
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
-        // Construct and then add the x axis.
-        var tick_height = Math.round(inner_height / 20);
-        <% if settings.frequency == 'weekly' %>
-          var tick_format = d3.time.format('%a'); // Weekday.
-        <% else %>
-          var tick_format = d3.time.format('%H'); // Hour.
-        <% end %>
-        var xAxis = d3.svg.axis()
-                .scale(x)
-                .orient('bottom')
-                // Show only one tick per year (12 months):
-                // .tickValues([0, 12, 24, 36, 48, 60, 72, 84, 96, 108])
-                .tickSize(tick_height, 0, 0)
-                .tickFormat(function(d,i){
-                    console.log(d);
-                    return tick_format(d);
-                });
-        svg.append('g')
-            .attr('class', 'axis axis-x')
-            // And shift the whole thing to the bottom of the chart.
-            .attr('transform', 'translate(0,' + inner_height + ')')
-            .call(xAxis);
+        d3plot(data);
 
-        // Draw each line.
-        // In reverse order, because we need to draw the oldest Period first.
-        // So line_idx = 0 is the oldest Period.
-        // line_idx = 1 is yesterday/last week.
-        chart_data.lines.reverse().forEach(function(line_data, line_idx) {
-          line_data.forEach(function(d) {
+        function d3plot(data) {
+          color.domain(d3.keys(data[0]).filter(
+                                  function(key) { return key !== 'date'; }));
+
+          data.forEach(function(d) {
             d.date = parseDate(d.date);
-            d.visits = +d.visits;
           });
 
+          var periods = color.domain().map(function(name) {
+            return {
+              name: name,
+              values: data.map(function(d) {
+                return {date: d.date, visits: +d[name]};
+              })
+            };
+          });
 
-          x.domain(d3.extent(line_data, function(d) { return d.date; }));
-          y.domain(d3.extent(line_data, function(d) { return d.visits; }));
+          x.domain(d3.extent(data, function(d) { return d.date; }));
 
-          svg.append('path')
-            .datum(line_data)
-            .attr('class', 'line-'+line_idx)
-            .attr('d', line);
-        });
+          y.domain([
+            0,
+            d3.max(periods, function(c) {
+              return d3.max(c.values, function(v) {return v.visits; }); })
+          ]);
+
+          svg.append('g')
+              .attr('class', 'x axis')
+              .attr('transform', 'translate(0,' + inner_height + ')')
+              .call(xAxis);
+
+          var period = svg.selectAll('.period')
+              .data(periods)
+            .enter().append('g')
+              .attr('class', 'period');
+            
+
+          var line_colors = {
+            'period0': '#000000',
+            'period1': '#999999'
+          };
+          period.append('path')
+              .attr('class', 'line')
+              .attr('d', function(d) { return line(d.values); })
+              .style('stroke', function(d) { return line_colors[d.name]; });
+        };
       };
 
-      // Create the data for each chart, and within that for each line.
-      <%# We generate a chart for each Profile: %>
       <% @profiles_data.each_with_index do |p, profile_idx| %>
-        var chart_data = {
-          // Will be 0-based number of this chart on the page:
-          number: <%= profile_idx %>,
-          // Will be an array of hashes, each hash having 'date' and 'visits'
-          // keys:
-          lines: []
-        };
+        var data = [];
 
-        <%# For each Period (eg, yesterday, last week), we draw a line: %>
-        <% p[:periods].each_with_index do |period, period_idx| %>
-          chart_data.lines.push([]);
-
-          <%# For each Visit in a Period, we add a point on the line: %>
-          <% period[:visits].each do |v| %>
-            chart_data.lines[<%= period_idx %>].push({
-              date: "<%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>00<% end %>",
-              visits: <%= v.visits %>
-            });
-          <% end %>
+        <% p[:periods][0][:visits].each_with_index do |v, visit_idx| %>
+          data.push({
+            'period0': <%= v.visits %>,
+            'period1': <%= p[:periods][1][:visits].to_a[visit_idx].visits %>,
+            'date': '<%= v.hour %>00'
+          });
         <% end %>
 
-        draw_chart(chart_data);
+        draw_chart(<%= profile_idx %>, data);
+
       <% end %>
     };
 
