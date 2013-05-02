@@ -118,6 +118,37 @@ helpers do
   def total_pageviews_query
     settings.frequency == 'weekly' ? PageviewByWeek : PageviewByDate
   end
+
+  # Passed in a period with :start and :end dates, returns a nice string, eg:
+  #  30 Dec 2012 to 5 Jan 2013
+  #  28 Apr to 5 May 2013
+  #  3–9 May 2013
+  def format_day_period(period)
+    if period[:start].strftime('%Y') != period[:end].strftime('%Y')
+      return "#{period[:start].strftime('%-d %b %Y')} to #{period[:end].strftime('%-d %b %Y')}"
+    elsif period[:start].strftime('%m') != period[:end].strftime('%m')
+      return "#{period[:start].strftime('%-d %b')} to #{period[:end].strftime('%-d %b %Y')}"
+    else
+      return "#{period[:start].strftime('%-d')}–#{period[:end].strftime('%-d %b %Y')}"
+    end
+  end
+
+  # Passed a new number and an old number, it returns a character depending on
+  # whether the number has increased, decreased or stayed the same.
+  def format_indicator(new_total, old_total)
+    if new_total > old_total
+      return '▲'
+    elsif new_total < old_total
+      return '▼'
+    else
+      return '–'
+    end
+  end
+
+  # Passed a number, it returns it with thousands comma-separated.
+  def format_number(num)
+    return num.to_s.reverse.gsub(/...(?=.)/,'\&,').reverse
+  end
 end
 
 
@@ -171,7 +202,7 @@ get %r{/(daily|weekly)/edition/} do |frequency|
       {:start => (printer_date - 14 - settings.weekly_day),
         :end => (printer_date - 8 - settings.weekly_day)}
     ] 
-    sort = ['date', 'hour']
+    sort = ['date']
   else
     @periods = [
       # Yesterday.

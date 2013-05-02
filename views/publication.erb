@@ -64,6 +64,9 @@
     td.num {
       text-align: right;
     }
+    td.num-recent {
+      font-weight: bold;
+    }
 
 
     .chart {
@@ -146,7 +149,7 @@
 
         // Turn a date/time string into a Date object.
         <% if settings.frequency == 'weekly' %>
-          var parseDate = d3.time.format('%d%m%Y').parse;
+          var parseDate = d3.time.format('%Y%m%d').parse;
         <% else %>
           var parseDate = d3.time.format('%H%M').parse;
         <% end %>
@@ -275,24 +278,26 @@
 
       <%# Put all the data into a JS structure for each profile, and make the chart. %>
       <% @profiles_data.each_with_index do |p, profile_idx| %>
-        var data = [];
+        var chart_data = [];
 
         <% p[:periods][1][:visits].each_with_index do |v, visit_idx| %>
-          data.push({
+          chart_data.push({
             // These need to be this way around, so that the least recent
             // line is drawn first, and then the most recent on top.
             // I think.
             'least_recent': <%= v.visits %>,
             'most_recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
             <% if settings.frequency == 'weekly' %>
+              // Will be like 'YYYYMMDD'.
               'date': '<%= v.date %>'
             <% else %>
+              // Will be like '1500'.
               'date': '<%= v.hour %>00'
             <% end %>
           });
         <% end %>
 
-        draw_chart('chart-'+<%= profile_idx %>, data);
+        draw_chart('chart-'+<%= profile_idx %>, chart_data);
       <% end %>
     };
 
@@ -309,7 +314,7 @@
 
       <p class="date">
         <% if settings.frequency == 'weekly' %>
-          From <%= @periods[0][:start] %> to <%= @peoriods[0][:end] %>
+          <%= format_day_period(@periods[0]) %> compared to previous&nbsp;week
         <% else %>
           <%= @periods[0][:start].strftime('%a %e %b %Y') %> compared to previous&nbsp;<%= @periods[1][:start].strftime('%A') %>
         <% end %>
@@ -323,57 +328,39 @@
         <tr>
           <td class="label">Visits</td> 
           <td class="indicator">
-            <% if p[:periods][0][:total_visits] > p[:periods][1][:total_visits] %>
-            ▲
-            <% elsif p[:periods][0][:total_visits] < p[:periods][1][:total_visits] %>
-            ▼
-            <% else %>
-            –
-            <% end %>
+            <%= format_indicator(p[:periods][0][:total_visits], p[:periods][1][:total_visits]) %>
+          </td>
+          <td class="num num-recent">
+            <%= format_number(p[:periods][0][:total_visits]) %>
           </td>
           <td class="num">
-            <strong><%= p[:periods][0][:total_visits].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
-          </td>
-          <td class="num">
-            (<%= p[:periods][1][:total_visits].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
+            (<%= format_number(p[:periods][1][:total_visits]) %>)
           </td>
         </tr>
 
         <tr>
           <td class="label">Visitors</td>
           <td class="indicator">
-            <% if p[:periods][0][:total_visitors] > p[:periods][1][:total_visitors] %>
-            ▲ 
-            <% elsif p[:periods][0][:total_visitors] < p[:periods][1][:total_visitors] %>
-            ▼
-            <% else %>
-            –
-            <% end %>
+            <%= format_indicator(p[:periods][0][:total_visitors], p[:periods][1][:total_visitors]) %>
+          </td>
+          <td class="num num-recent">
+            <%= format_number(p[:periods][0][:total_visitors]) %>
           </td>
           <td class="num">
-            <strong><%= p[:periods][0][:total_visitors].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
-          </td>
-          <td class="num">
-            (<%= p[:periods][1][:total_visitors].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
+            (<%= format_number(p[:periods][1][:total_visitors]) %>)
           </td>
         </tr>
 
         <tr>
           <td class="label">Pageviews</td>
           <td class="indicator">
-            <% if p[:periods][0][:total_pageviews] > p[:periods][1][:total_pageviews] %>
-            ▲
-            <% elsif p[:periods][0][:total_pageviews] < p[:periods][1][:total_pageviews] %>
-            ▼
-            <% else %>
-            –
-            <% end %>
+            <%= format_indicator(p[:periods][0][:total_pageviews], p[:periods][1][:total_pageviews]) %>
           </td>
-          <td class="num"> 
-            <strong><%= p[:periods][0][:total_pageviews].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
+          <td class="num num-recent"> 
+            <%= format_number(p[:periods][0][:total_pageviews]) %>
           </td>
           <td class="num">
-            (<%= p[:periods][1][:total_pageviews].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
+            (<%= format_number(p[:periods][1][:total_pageviews]) %>)
           </td>
         </tr>
 
