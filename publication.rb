@@ -162,7 +162,7 @@ get %r{/(daily|weekly)/edition/} do |frequency|
 
   # Prepare the start/end dates and sorting.
   if settings.frequency == 'weekly'
-    periods = [
+    @periods = [
       # Google Analytics weeks run Sunday-Saturday.
       # Last week (Sun-Sat).
       {:start => (printer_date - 7 - settings.weekly_day),
@@ -173,7 +173,7 @@ get %r{/(daily|weekly)/edition/} do |frequency|
     ] 
     sort = ['date', 'hour']
   else
-    periods = [
+    @periods = [
       # Yesterday.
       {:start => (printer_date - 1),
         :end => (printer_date - 1)},
@@ -193,13 +193,12 @@ get %r{/(daily|weekly)/edition/} do |frequency|
 
     # So we first gather the data for yesterday or last week.
     # Then we gather the data for the same day the previous week / the week before last.
-    periods.each do |period|
+    @periods.each do |period|
       # The structure we fill with data for this period.
       period_data = {:visits => [],
                       :total_visits=> 0,
                       :total_visitors=> 0,
-                      :total_pageviews => 0,
-                      :start_date => period[:start], :end_date => period[:end]} 
+                      :total_pageviews => 0} 
 
       # Hourly or daily data for the graph.
       period_data[:visits] = graph_query.results(profile,
@@ -226,7 +225,6 @@ get %r{/(daily|weekly)/edition/} do |frequency|
     end
     @profiles_data.push(profile_data)
   end
-
 
   # TODO: Change etag back to this first one for when it's live.
   # etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))

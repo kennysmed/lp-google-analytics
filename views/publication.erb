@@ -12,20 +12,53 @@
       padding: 0;
       margin: 0;
       font-family: Arial, sans-serif;
+      font-size: 16px;
     }
+    h1 {
+      margin: 0;
+      padding: 10px 10px;
+      font-size: 24px;
+    }
+    h2 {
+      background: #000;
+      color: #fff;
+      padding: 5px 10px;
+      margin: 0;
+      font-size: 20px;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    h3 {
+      font-size: 18px;
+      margin: 10px;
+      padding: 0;
+    }
+    p {
+      margin: 0 0 10px 0;
+      padding: 0 10px;
+    }
+    .profile {
+      margin-bottom: 20px;
+    }
+    .totals {
+      margin-top: 20px;
+    }
+
     .chart {
-      width: 360px;
+      /* Dimensions of overall chart, including axes and internal margins. */
+      width: 374px;
       height: 180px;
+      margin: 0 0 0 10px;
     }
     .line {
       fill: none;
-      stroke-width: 3px;
-    }
-    .line-most-recent {
       stroke: #000;
     }
-    .line-least-recent {
-      stroke: #999;
+    .line_most_recent {
+      stroke-width: 4px;
+    }
+    .line_least_recent {
+      stroke-width: 1px;
     }
 
     /* The x and y axes themselves. */
@@ -43,6 +76,9 @@
       stroke: #000;
       shape-rendering: crispEdges;
     }
+    .axis text {
+      font-size: 14px;
+    }
 
   </style>
 
@@ -52,20 +88,32 @@
   <script>
     window.onload = function() {
 
-      function draw_chart(chart_number, chart_data) {
+      function draw_chart(chart_id, chart_data) {
+
+        // A bit clunky - find the maximum value of y (visits) for this chart:
+        var max_y = 0;
+        chart_data.forEach(function(d) {
+          if (d.least_recent > max_y) {
+            max_y = d.least_recent;
+          };
+          if (d.most_recent > max_y) {
+            max_y = d.most_recent;
+          };
+        });
+        // Work out how much left margin (in pixels) we need
+        // to leave for that many digits (and commas).
+        var left_margin = max_y.toString().length * 9.2;
+
         // Size of whole chart, including axes and space around it:
-        var outer_width = 384;
-        var outer_height = 180;
-        var margin = {top: 0, right: 10, bottom: 30, left: 20};
+        var outer_width = document.getElementById(chart_id).offsetWidth;
+        var outer_height = document.getElementById(chart_id).offsetHeight;
+        var margin = {top: 0, right: 10, bottom: 20, left: left_margin};
         // Size of the area of the chart with the actual lines on:
         var inner_width = outer_width - margin.left - margin.right;
         var inner_height = outer_height - margin.top - margin.bottom;
 
         // Turn a date/time string into a Date object.
         var parseDate = d3.time.format('%H%M').parse;
-
-        // How we want the X-Axis dates/times formatted.
-        var x_tick_format = d3.time.format('%H');
 
         // The scales.
         var x = d3.time.scale().range([0, inner_width]);
@@ -75,6 +123,12 @@
         // I don't understand this one...
         var scale = d3.scale.ordinal();
 
+        // How we want the X-Axis dates/times formatted.
+        var x_tick_format = d3.time.format('%H');
+
+        // Add commas in thousands.
+        var y_tick_format = d3.format(',');
+
         // The axes.
         var xAxis = d3.svg.axis().scale(x).orient('bottom')
                       .tickSize(6, 0, 0)
@@ -82,7 +136,8 @@
 
         var yAxis = d3.svg.axis().scale(y).orient('left')
                       .tickSize(-inner_width, 0, 0)
-                      .ticks(5);
+                      .ticks(5)
+                      .tickFormat(function(d) { return y_tick_format(d); });
 
         var line = d3.svg.line()
                     .interpolate('basis')
@@ -90,7 +145,7 @@
                     .y(function(d) { return y(d.visits ); });
 
         // The main chart area.
-        var svg = d3.select('#chart-'+chart_number).append('svg')
+        var svg = d3.select('#'+chart_id).append('svg')
             .attr('width', outer_width)
             .attr('height', outer_height)
           .append('g')
@@ -111,11 +166,11 @@
           });
 
           // Change from the chart_data format:
-          // [{date:Date, 'least-recent':7, 'most-recent':12}, {}...]
+          // [{date:Date, 'least_recent':7, 'most_recent':12}, {}...]
           // to a different format for periods:
           // [
-          //  {name:'least-recent', values:[{date:Date, visits:7}, {}...]},
-          //  {name:'most-recent', values:[{date:Date, visits:7}, {}...]}
+          //  {name:'least_recent', values:[{date:Date, visits:7}, {}...]},
+          //  {name:'most_recent', values:[{date:Date, visits:7}, {}...]}
           // ]
           var periods = scale.domain().map(function(name) {
             return {
@@ -154,11 +209,12 @@
             
           // Draw each of the lines.
           period.append('path')
-              .attr('class', function(d) { return 'line line-'+d.name; })
+              .attr('class', function(d) { return 'line line_'+d.name; })
               .attr('d', function(d) { return line(d.values); });
         };
       };
 
+      <%# Put all the data into a JS structure for each profile, and make the chart. %>
       <% @profiles_data.each_with_index do |p, profile_idx| %>
         var data = [];
 
@@ -166,14 +222,14 @@
           data.push({
             // These need to be this way around, so that the least recent
             // line is drawn first, and then the most recent on top.
-            'least-recent': <%= v.visits %>,
-            'most-recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
+            // I think.
+            'least_recent': <%= v.visits %>,
+            'most_recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
             'date': '<%= v.hour %>00'
           });
         <% end %>
 
-        draw_chart(<%= profile_idx %>, data);
-
+        draw_chart('chart-'+<%= profile_idx %>, data);
       <% end %>
     };
 
@@ -183,65 +239,58 @@
 <body>
   <h1>Google Analytics (<%= settings.frequency.capitalize %>)</h1>
 
-  <% @profiles_data.each_with_index do |p, idx| %>
-    <h2><%= p[:name] %></h2>
-
-    <% if p[:periods][0][:start_date] == p[:periods][0][:end_date] %>
-      <p>For <%= p[:periods][0][:start_date] %>.</p>
+  <p class="date">
+    <% if settings.frequency == 'weekly' %>
+      From <%= @periods[0][:start] %> to <%= @peoriods[0][:end] %>
     <% else %>
-      <p>From <%= p[:periods][0][:start_date] %> to <%= p[:periods][0][:end_date] %>.</p>
+      <%= @periods[0][:start].strftime('%a %e %b %Y') %> compared to previous <%= @periods[1][:start].strftime('%A') %>
     <% end %>
+  </p>
 
-    <h3>Visits</h3>
 
-    <div id="chart-<%= idx %>" class="chart"></div>
+  <% @profiles_data.each_with_index do |p, idx| %>
+    <div class="profile">
+      <h2><%= p[:name] %></h2>
 
-<% 
-=begin %>
-    <h4><% if settings.frequency == 'weekly' %>Last week<% else %>Yesterday<% end %></h4>
-    <ul>
-      <% p[:periods][0][:visits].each do |v| %>
-        <li><%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>:00<% end %> – <%= v.visits %></li>
-      <% end %> 
-    </ul>
+      <h3>Visits <% if settings.frequency == 'weekly' %>each day<% else %>per hour<% end %></h3>
 
-    <h4>Previous</h4>
-    <ul>
-      <% p[:periods][1][:visits].each do |v| %>
-        <li><%= v.date %><% if settings.frequency == 'daily' %> <%= v.hour %>:00<% end %> – <%= v.visits %></li>
-      <% end %> 
-    </ul>
-<% 
-=end %>
+      <div id="chart-<%= idx %>" class="chart"></div>
 
-    <h3>Totals</h2>
-    <p>Visits: 
-      <% if p[:periods][0][:total_visits] > p[:periods][1][:total_visits] %>
-      ^
-      <% elsif p[:periods][0][:total_visits] < p[:periods][1][:total_visits] %>
-      v
-      <% else %>
-      –
-      <% end %>
-      <%= p[:periods][0][:total_visits] %> (<%= p[:periods][1][:total_visits] %>)</p>
-    <p>Visitors: 
-      <% if p[:periods][0][:total_visitors] > p[:periods][1][:total_visitors] %>
-      ^
-      <% elsif p[:periods][0][:total_visitors] < p[:periods][1][:total_visitors] %>
-      v
-      <% else %>
-      –
-      <% end %>
-      <%= p[:periods][0][:total_visitors] %> (<%= p[:periods][1][:total_visitors] %>)</p>
-    <p>Pageviews:
-      <% if p[:periods][0][:total_pageviews] > p[:periods][1][:total_pageviews] %>
-      ^
-      <% elsif p[:periods][0][:total_pageviews] < p[:periods][1][:total_pageviews] %>
-      v
-      <% else %>
-      –
-      <% end %>
-      <%= p[:periods][0][:total_pageviews] %> (<%= p[:periods][1][:total_pageviews] %>)</p>
+      <div class="totals">
+        <p>Visits: 
+          <% if p[:periods][0][:total_visits] > p[:periods][1][:total_visits] %>
+          ^
+          <% elsif p[:periods][0][:total_visits] < p[:periods][1][:total_visits] %>
+          v
+          <% else %>
+          –
+          <% end %>
+          <strong><%= p[:periods][0][:total_visits] %></strong> (<%= p[:periods][1][:total_visits] %>)
+        </p>
+
+        <p>Visitors: 
+          <% if p[:periods][0][:total_visitors] > p[:periods][1][:total_visitors] %>
+          ^
+          <% elsif p[:periods][0][:total_visitors] < p[:periods][1][:total_visitors] %>
+          v
+          <% else %>
+          –
+          <% end %>
+          <strong><%= p[:periods][0][:total_visitors] %></strong> (<%= p[:periods][1][:total_visitors] %>)
+        </p>
+
+        <p>Pageviews:
+          <% if p[:periods][0][:total_pageviews] > p[:periods][1][:total_pageviews] %>
+          ^
+          <% elsif p[:periods][0][:total_pageviews] < p[:periods][1][:total_pageviews] %>
+          v
+          <% else %>
+          –
+          <% end %>
+          <strong><%= p[:periods][0][:total_pageviews] %></strong> (<%= p[:periods][1][:total_pageviews] %>)
+        </p>
+      </div> <!-- .totals -->
+    </div> <!-- .profile -->
   <% end %>
 
 
