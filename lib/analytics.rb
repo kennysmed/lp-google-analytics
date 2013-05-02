@@ -1,6 +1,9 @@
 # coding: utf-8
 require 'legato'
 
+# Classes for accessing Legato -> Google Analytics queries.
+# Just to keep them out of the way of the main publication code.
+
 # Use one of these classes something like this:
 #
 # UniqueVisitorByDate.results(user.profiles.first,
