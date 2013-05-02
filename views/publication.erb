@@ -110,6 +110,16 @@
   <script>
     window.onload = function() {
 
+      // This is based on this d3 example:
+      // http://bl.ocks.org/mbostock/3884955
+      // There's also a version on JSfiddle, which is handy for exploring:
+      // http://jsfiddle.net/dtkav/Jz6QG/ 
+      //  chart_id is the CSS ID of the div where this chart will go.
+      //  chart_data is an array of hashes, each one describing x-axis point(s).
+      //    Each hash will be like:
+      //    'least_recent': 123, // Number of visits in prior period.
+      //    'most_recent': 456, // Number of visits yesterday/last week.
+      //    'date': '0300' // Either an hourminute, or a date.
       function draw_chart(chart_id, chart_data) {
 
         // A bit clunky - find the maximum value of y (visits) for this chart:
@@ -135,7 +145,11 @@
         var inner_height = outer_height - margin.top - margin.bottom;
 
         // Turn a date/time string into a Date object.
-        var parseDate = d3.time.format('%H%M').parse;
+        <% if settings.frequency == 'weekly' %>
+          var parseDate = d3.time.format('%d%m%Y').parse;
+        <% else %>
+          var parseDate = d3.time.format('%H%M').parse;
+        <% end %>
 
         // The scales.
         var x = d3.time.scale().range([0, inner_width]);
@@ -146,18 +160,33 @@
         var scale = d3.scale.ordinal();
 
         // How we want the X-Axis dates/times formatted.
-        var x_tick_format = d3.time.format('%H:00');
+        <% if settings.frequency == 'weekly' %>
+          var x_tick_format = d3.time.format('%a');
+        <% else %>
+          var x_tick_format = d3.time.format('%H:00');
+        <% end %>
 
         // Add commas in thousands.
         var y_tick_format = d3.format(',');
 
         // Explicitly set the x axis to show ticks every four hours.
-        var x_tick_values = [parseDate(chart_data[0]['date']),
+        <% if settings.frequency == 'weekly' %>
+          var x_tick_values = [parseDate(chart_data[0]['date']),
+                              parseDate(chart_data[1]['date']),
+                              parseDate(chart_data[2]['date']),
+                              parseDate(chart_data[3]['date']),
+                              parseDate(chart_data[4]['date']),
+                              parseDate(chart_data[5]['date']),
+                              parseDate(chart_data[6]['date'])];
+        <% else %>
+          var x_tick_values = [parseDate(chart_data[0]['date']),
                               parseDate(chart_data[4]['date']),
                               parseDate(chart_data[8]['date']),
                               parseDate(chart_data[12]['date']),
                               parseDate(chart_data[16]['date']),
                               parseDate(chart_data[20]['date'])];
+        <% end %>
+
         // The axes.
         var xAxis = d3.svg.axis().scale(x).orient('bottom')
                       .tickSize(6, 0, 0)
@@ -165,8 +194,8 @@
                       .tickFormat(function(d) { return x_tick_format(d); });
 
         var yAxis = d3.svg.axis().scale(y).orient('left')
-                      .tickSize(-inner_width, 0, 0)
-                      .ticks(5)
+                      .tickSize(-inner_width, 0, 0) // Make the horizontal lines.
+                      .ticks(5) // Roughly the number of ticks.
                       .tickFormat(function(d) { return y_tick_format(d); });
 
         var line = d3.svg.line()
@@ -255,7 +284,11 @@
             // I think.
             'least_recent': <%= v.visits %>,
             'most_recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
-            'date': '<%= v.hour %>00'
+            <% if settings.frequency == 'weekly' %>
+              'date': '<%= v.date %>'
+            <% else %>
+              'date': '<%= v.hour %>00'
+            <% end %>
           });
         <% end %>
 
