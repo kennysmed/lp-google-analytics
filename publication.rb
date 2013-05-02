@@ -220,7 +220,6 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   @profiles_data = []
 
   profiles.each do |profile|
-    puts profile.name
     profile_data = {:name => profile.name, :periods => []}
 
     # So we first gather the data for yesterday or last week.
@@ -258,10 +257,11 @@ get %r{/(daily|weekly)/edition/} do |frequency|
     @profiles_data.push(profile_data)
   end
 
-  # TODO: Change etag back to this first one for when it's live.
-  # etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))
+  puts @profiles_data
+
+  etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))
   # Testing, always changing etag:
-  etag Digest::MD5.hexdigest(params[:access_token] + Time.now.strftime('%M%H-%d%m%Y'))
+  # etag Digest::MD5.hexdigest(params[:access_token] + Time.now.strftime('%M%H-%d%m%Y'))
   erb :publication
 end
 
@@ -357,6 +357,234 @@ end
 
 get %r{/(daily|weekly)/sample/} do |frequency|
   set_frequency(frequency)
+
+  if settings.frequency == 'weekly'
+    @periods = [
+      # Google Analytics weeks run Sunday-Saturday.
+      # Last week (Sun-Sat).
+      {:start => Date.new(2013, 4, 21),
+        :end => Date.new(2013, 4, 27)},
+      # The week before last (Sun-Sat).
+      {:start => Date.new(2013, 4, 14),
+        :end => Date.new(2013, 4, 20)}
+    ] 
+    @profiles_data = [
+      {
+        :name => 'Play Now',
+        :periods => [
+          {
+            :visits => [
+              OpenStruct.new('date'=>'20130421', 'visits'=> '7976543'),
+              OpenStruct.new('date'=>'20130422', 'visits'=>'12376543'),
+              OpenStruct.new('date'=>'20130423', 'visits'=>'10976543'),
+              OpenStruct.new('date'=>'20130424', 'visits'=> '9676543'),
+              OpenStruct.new('date'=>'20130425', 'visits'=> '8076543'),
+              OpenStruct.new('date'=>'20130426', 'visits'=> '8876543'),
+              OpenStruct.new('date'=>'20130427', 'visits'=> '7276543'),
+            ],
+            :total_visits=> 65235801,
+            :total_visitors=> 43783087,
+            :total_pageviews => 101659823
+          },
+          {
+            :visits => [
+              OpenStruct.new('date'=>'20130414', 'visits'=> '7476543'),
+              OpenStruct.new('date'=>'20130415', 'visits'=>'11016543'),
+              OpenStruct.new('date'=>'20130416', 'visits'=>'10846543'),
+              OpenStruct.new('date'=>'20130417', 'visits'=> '8776543'),
+              OpenStruct.new('date'=>'20130418', 'visits'=> '9106543'),
+              OpenStruct.new('date'=>'20130419', 'visits'=> '8096543'),
+              OpenStruct.new('date'=>'20130420', 'visits'=> '6576543'),
+            ],
+            :total_visits=> 61895801,
+            :total_visitors=> 41836473,
+            :total_pageviews => 98763847
+          } 
+        ]
+      },
+      {
+        :name => 'Kruger Industrial Smoothings',
+        :periods => [
+          {
+            :visits => [
+              OpenStruct.new('date'=>'20130421', 'visits'=>'27'),
+              OpenStruct.new('date'=>'20130422', 'visits'=>'30'),
+              OpenStruct.new('date'=>'20130423', 'visits'=>'31'),
+              OpenStruct.new('date'=>'20130424', 'visits'=>'20'),
+              OpenStruct.new('date'=>'20130425', 'visits'=>'17'),
+              OpenStruct.new('date'=>'20130426', 'visits'=>'12'),
+              OpenStruct.new('date'=>'20130427', 'visits'=> '2'),
+            ],
+            :total_visits=> 139,
+            :total_visitors=> 25,
+            :total_pageviews => 180 
+          },
+          {
+            :visits => [
+              OpenStruct.new('date'=>'20130414', 'visits'=>'32'),
+              OpenStruct.new('date'=>'20130415', 'visits'=>'41'),
+              OpenStruct.new('date'=>'20130416', 'visits'=>'28'),
+              OpenStruct.new('date'=>'20130417', 'visits'=> '5'),
+              OpenStruct.new('date'=>'20130418', 'visits'=>'12'),
+              OpenStruct.new('date'=>'20130419', 'visits'=>'10'),
+              OpenStruct.new('date'=>'20130420', 'visits'=> '15'),
+            ],
+            :total_visits=> 143,
+            :total_visitors=> 37,
+            :total_pageviews => 168 
+          } 
+        ]
+      }
+    ]
+  else
+    # Daily sample.
+    @periods = [
+      # Yesterday.
+      {:start => Date.new(2013, 4, 28),
+        :end => Date.new(2013, 4, 28)},
+      # The same weekday as yesterday, but a week earlier.
+      {:start => Date.new(2013, 4, 21),
+        :end => Date.new(2013, 4, 21)}
+    ] 
+    @profiles_data = [
+      {
+        :name => 'Play Now',
+        :periods => [
+          {
+            :visits => [
+              OpenStruct.new('hour'=>'00', 'visits'=> '311000'),
+              OpenStruct.new('hour'=>'01', 'visits'=> '309000'),
+              OpenStruct.new('hour'=>'02', 'visits'=> '287000'),
+              OpenStruct.new('hour'=>'03', 'visits'=> '250000'),
+              OpenStruct.new('hour'=>'04', 'visits'=> '255000'),
+              OpenStruct.new('hour'=>'05', 'visits'=> '290000'),
+              OpenStruct.new('hour'=>'06', 'visits'=> '322000'),
+              OpenStruct.new('hour'=>'07', 'visits'=> '310000'),
+              OpenStruct.new('hour'=>'08', 'visits'=> '308000'),
+              OpenStruct.new('hour'=>'09', 'visits'=> '340000'),
+              OpenStruct.new('hour'=>'10', 'visits'=> '335000'),
+              OpenStruct.new('hour'=>'11', 'visits'=> '352000'),
+              OpenStruct.new('hour'=>'12', 'visits'=> '367000'),
+              OpenStruct.new('hour'=>'13', 'visits'=> '380000'),
+              OpenStruct.new('hour'=>'14', 'visits'=> '349000'),
+              OpenStruct.new('hour'=>'15', 'visits'=> '356000'),
+              OpenStruct.new('hour'=>'16', 'visits'=> '355000'),
+              OpenStruct.new('hour'=>'17', 'visits'=> '370000'),
+              OpenStruct.new('hour'=>'18', 'visits'=> '385000'),
+              OpenStruct.new('hour'=>'19', 'visits'=> '369000'),
+              OpenStruct.new('hour'=>'20', 'visits'=> '362000'),
+              OpenStruct.new('hour'=>'21', 'visits'=> '351000'),
+              OpenStruct.new('hour'=>'22', 'visits'=> '332000'),
+              OpenStruct.new('hour'=>'23', 'visits'=> '320000'),
+            ],
+            :total_visits=> 8376543,
+            :total_visitors=> 6435872,
+            :total_pageviews => 12873907 
+          },
+          {
+            :visits => [
+              OpenStruct.new('hour'=>'00', 'visits'=> '301000'),
+              OpenStruct.new('hour'=>'01', 'visits'=> '307000'),
+              OpenStruct.new('hour'=>'02', 'visits'=> '247000'),
+              OpenStruct.new('hour'=>'03', 'visits'=> '249000'),
+              OpenStruct.new('hour'=>'04', 'visits'=> '248000'),
+              OpenStruct.new('hour'=>'05', 'visits'=> '275000'),
+              OpenStruct.new('hour'=>'06', 'visits'=> '302000'),
+              OpenStruct.new('hour'=>'07', 'visits'=> '312000'),
+              OpenStruct.new('hour'=>'08', 'visits'=> '305000'),
+              OpenStruct.new('hour'=>'09', 'visits'=> '320000'),
+              OpenStruct.new('hour'=>'10', 'visits'=> '315000'),
+              OpenStruct.new('hour'=>'11', 'visits'=> '302000'),
+              OpenStruct.new('hour'=>'12', 'visits'=> '377000'),
+              OpenStruct.new('hour'=>'13', 'visits'=> '376000'),
+              OpenStruct.new('hour'=>'14', 'visits'=> '345000'),
+              OpenStruct.new('hour'=>'15', 'visits'=> '350000'),
+              OpenStruct.new('hour'=>'16', 'visits'=> '336000'),
+              OpenStruct.new('hour'=>'17', 'visits'=> '369000'),
+              OpenStruct.new('hour'=>'18', 'visits'=> '379000'),
+              OpenStruct.new('hour'=>'19', 'visits'=> '382000'),
+              OpenStruct.new('hour'=>'20', 'visits'=> '374000'),
+              OpenStruct.new('hour'=>'21', 'visits'=> '352000'),
+              OpenStruct.new('hour'=>'22', 'visits'=> '328000'),
+              OpenStruct.new('hour'=>'23', 'visits'=> '318000'),
+            ],
+            :total_visits=> 8038712,
+            :total_visitors=> 6098209,
+            :total_pageviews => 11987120 
+          } 
+        ]
+      },
+      {
+        :name => 'Kruger Industrial Smoothings',
+        :periods => [
+          {
+            :visits => [
+              OpenStruct.new('hour'=>'00', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'01', 'visits'=> '0'),
+              OpenStruct.new('hour'=>'02', 'visits'=> '4'),
+              OpenStruct.new('hour'=>'03', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'04', 'visits'=> '1'),
+              OpenStruct.new('hour'=>'05', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'06', 'visits'=> '0'),
+              OpenStruct.new('hour'=>'07', 'visits'=> '4'),
+              OpenStruct.new('hour'=>'08', 'visits'=> '8'),
+              OpenStruct.new('hour'=>'09', 'visits'=> '7'),
+              OpenStruct.new('hour'=>'10', 'visits'=> '6'),
+              OpenStruct.new('hour'=>'11', 'visits'=> '7'),
+              OpenStruct.new('hour'=>'12', 'visits'=> '12'),
+              OpenStruct.new('hour'=>'13', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'14', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'15', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'16', 'visits'=> '0'),
+              OpenStruct.new('hour'=>'17', 'visits'=> '0'),
+              OpenStruct.new('hour'=>'18', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'19', 'visits'=> '1'),
+              OpenStruct.new('hour'=>'20', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'21', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'22', 'visits'=> '4'),
+              OpenStruct.new('hour'=>'23', 'visits'=> '0'),
+            ],
+            :total_visits=> 76,
+            :total_visitors=> 3,
+            :total_pageviews => 99 
+          },
+          {
+            :visits => [
+              OpenStruct.new('hour'=>'00', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'01', 'visits'=> '1'),
+              OpenStruct.new('hour'=>'02', 'visits'=> '4'),
+              OpenStruct.new('hour'=>'03', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'04', 'visits'=> '1'),
+              OpenStruct.new('hour'=>'05', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'06', 'visits'=> '1'),
+              OpenStruct.new('hour'=>'07', 'visits'=> '5'),
+              OpenStruct.new('hour'=>'08', 'visits'=> '7'),
+              OpenStruct.new('hour'=>'09', 'visits'=> '4'),
+              OpenStruct.new('hour'=>'10', 'visits'=> '5'),
+              OpenStruct.new('hour'=>'11', 'visits'=> '9'),
+              OpenStruct.new('hour'=>'12', 'visits'=> '10'),
+              OpenStruct.new('hour'=>'13', 'visits'=> '7'),
+              OpenStruct.new('hour'=>'14', 'visits'=> '8'),
+              OpenStruct.new('hour'=>'15', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'16', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'17', 'visits'=> '4'),
+              OpenStruct.new('hour'=>'18', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'19', 'visits'=> '0'),
+              OpenStruct.new('hour'=>'20', 'visits'=> '2'),
+              OpenStruct.new('hour'=>'21', 'visits'=> '5'),
+              OpenStruct.new('hour'=>'22', 'visits'=> '3'),
+              OpenStruct.new('hour'=>'23', 'visits'=> '1'),
+            ],
+            :total_visits=> 94,
+            :total_visitors=> 6,
+            :total_pageviews => 106
+          } 
+        ]
+      }
+    ]
+  end
+
+  etag Digest::MD5.hexdigest('sample' + Date.today.strftime('%d%m%Y'))
   erb :publication
 end
 
