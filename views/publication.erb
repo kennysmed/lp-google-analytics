@@ -34,7 +34,7 @@
       margin: 10px;
       padding: 0;
     }
-    p {
+    p, table {
       margin: 0 0 10px 0;
       padding: 0 10px;
     }
@@ -43,11 +43,28 @@
     }
     .profile:last-child {
       border-bottom: 5px solid #000;
-      padding-bottom: 10px;
+      padding-bottom: 20px;
     }
     .totals {
       margin-top: 20px;
     }
+    table {
+      margin: 0 auto;
+    }
+    td {
+      padding-right: 10px;
+    }
+    td.label {
+      font-weight: bold;
+      text-align: right;
+    }
+    td.indicator {
+      font-size: 18px;
+    }
+    td.num {
+      text-align: right;
+    }
+
 
     .chart {
       /* Dimensions of overall chart, including axes and internal margins. */
@@ -269,45 +286,65 @@
 
       <div id="chart-<%= idx %>" class="chart"></div>
 
-      <div class="totals">
+      <table class="totals">
+        <tr>
+          <td class="label">Visits</td> 
+          <td class="indicator">
+            <% if p[:periods][0][:total_visits] > p[:periods][1][:total_visits] %>
+            ▲
+            <% elsif p[:periods][0][:total_visits] < p[:periods][1][:total_visits] %>
+            ▼
+            <% else %>
+            –
+            <% end %>
+          </td>
+          <td class="num">
+            <strong><%= p[:periods][0][:total_visits].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
+          </td>
+          <td class="num">
+            (<%= p[:periods][1][:total_visits].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
+          </td>
+        </tr>
 
-        <p>Visits: 
-          <% if p[:periods][0][:total_visits] > p[:periods][1][:total_visits] %>
-          ▲
-          <% elsif p[:periods][0][:total_visits] < p[:periods][1][:total_visits] %>
-          ▼
-          <% else %>
-          –
-          <% end %>
-          <strong><%= p[:periods][0][:total_visits].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
-          (<%= p[:periods][1][:total_visits].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
-        </p>
+        <tr>
+          <td class="label">Visitors</td>
+          <td class="indicator">
+            <% if p[:periods][0][:total_visitors] > p[:periods][1][:total_visitors] %>
+            ▲ 
+            <% elsif p[:periods][0][:total_visitors] < p[:periods][1][:total_visitors] %>
+            ▼
+            <% else %>
+            –
+            <% end %>
+          </td>
+          <td class="num">
+            <strong><%= p[:periods][0][:total_visitors].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
+          </td>
+          <td class="num">
+            (<%= p[:periods][1][:total_visitors].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
+          </td>
+        </tr>
 
-        <p>Visitors: 
-          <% if p[:periods][0][:total_visitors] > p[:periods][1][:total_visitors] %>
-          ▲ 
-          <% elsif p[:periods][0][:total_visitors] < p[:periods][1][:total_visitors] %>
-          ▼
-          <% else %>
-          –
-          <% end %>
-          <strong><%= p[:periods][0][:total_visitors].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
-          (<%= p[:periods][1][:total_visitors].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
-        </p>
+        <tr>
+          <td class="label">Pageviews</td>
+          <td class="indicator">
+            <% if p[:periods][0][:total_pageviews] > p[:periods][1][:total_pageviews] %>
+            ▲
+            <% elsif p[:periods][0][:total_pageviews] < p[:periods][1][:total_pageviews] %>
+            ▼
+            <% else %>
+            –
+            <% end %>
+          </td>
+          <td class="num"> 
+            <strong><%= p[:periods][0][:total_pageviews].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
+          </td>
+          <td class="num">
+            (<%= p[:periods][1][:total_pageviews].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
+          </td>
+        </tr>
 
-        <p>Pageviews:
-          <% if p[:periods][0][:total_pageviews] > p[:periods][1][:total_pageviews] %>
-          ▲
-          <% elsif p[:periods][0][:total_pageviews] < p[:periods][1][:total_pageviews] %>
-          ▼
-          <% else %>
-          –
-          <% end %>
-          <strong><%= p[:periods][0][:total_pageviews].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %></strong>
-          (<%= p[:periods][1][:total_pageviews].to_s.reverse.gsub(/...(?=.)/,'\&,').reverse %>)
-        </p>
-
-      </div> <!-- .totals -->
+      </table> <!-- .totals -->
     </div> <!-- .profile -->
   <% end %>
 
