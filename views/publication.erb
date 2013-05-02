@@ -137,7 +137,12 @@
         });
         // Work out how much left margin (in pixels) we need
         // to leave for that many digits (and commas).
-        var left_margin = max_y.toString().length * 9.2;
+        var left_margin = 3 + (max_y.toString().length * 9);
+        // But a special case... there might be y-axis labels that are like
+        // '0.8', so we'll need more room than a single finger would need:
+        if (max_y < 10) {
+          left_margin = 3 + (3 * 9);
+        };
 
         // Size of whole chart, including axes and space around it:
         var outer_width = document.getElementById(chart_id).offsetWidth;

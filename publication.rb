@@ -220,6 +220,7 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   @profiles_data = []
 
   profiles.each do |profile|
+    puts profile.name
     profile_data = {:name => profile.name, :periods => []}
 
     # So we first gather the data for yesterday or last week.
