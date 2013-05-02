@@ -157,7 +157,10 @@
         // The scales.
         var x = d3.time.scale().range([0, inner_width]);
 
-        var y = d3.scale.linear().range([inner_height, 0]);
+        // If a horizontal line is drawn at the very top of the graph,
+        // the y-axis label for it will reach above the line. So we need to
+        // add a bit of space (the 7 here) to allow for that.
+        var y = d3.scale.linear().range([inner_height, 7]);
 
         // I don't understand this one...
         var scale = d3.scale.ordinal();
@@ -282,9 +285,6 @@
 
         <% p[:periods][1][:visits].each_with_index do |v, visit_idx| %>
           chart_data.push({
-            // These need to be this way around, so that the least recent
-            // line is drawn first, and then the most recent on top.
-            // I think.
             'least_recent': <%= v.visits %>,
             'most_recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
             <% if settings.frequency == 'weekly' %>
