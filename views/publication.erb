@@ -38,6 +38,12 @@
       margin: 0 0 10px 0;
       padding: 0 10px;
     }
+    p.error {
+      border-top: 5px solid #000;
+      border-bottom: 5px solid #000;
+      margin: 0 0 10px 0;
+      padding: 10px;
+    }
     .profile {
       margin-bottom: 20px;
     }
@@ -314,6 +320,10 @@
 <body>
 
   <h1><%= format_title %></h1>
+
+  <% if @profiles_data.length == 0 %>
+    <p class="error">There are no valid Google Analytics Profiles to display. You might need to unsubscribe from this publication and re-subscribe.</p>
+  <% end %>
 
   <% @profiles_data.each_with_index do |p, idx| %>
     <div class="profile">

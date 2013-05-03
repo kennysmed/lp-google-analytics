@@ -188,18 +188,21 @@ get %r{/(daily|weekly)/edition/} do |frequency|
 
   # The Google API refresh_token will be sent in params[:access_token]
   # Use that to get a new access_token_obj.
-  # TODO: Error checking.
-  access_token_obj = OAuth2::AccessToken.from_hash(auth_client,
+  begin
+    access_token_obj = OAuth2::AccessToken.from_hash(auth_client,
                               :refresh_token => params[:access_token]).refresh!
-  # TODO: Error checking.
+  rescue OAuth2::Error => e
+    return 500, e.description
+  rescue
+    return 500, "Something went wrong when trying to get an access token from Google Analytics (1)"
+  end
+
   user = Legato::User.new(access_token_obj)
 
   # Get an array of the Profiles that we have IDs in params[:profiles] for.
   # Which will be all of them, unless the user has deleted or been removed
   # from one since they subscribed.
   profiles = user.profiles.select{|p| params[:profiles].split(' ').include?(p.id)}
-
-  # TODO: If profile is length==0, then display message to user?
 
   # Prepare the start/end dates and sorting.
   if settings.frequency == 'weekly'
@@ -309,7 +312,7 @@ get %r{/(daily|weekly)/return/} do |frequency|
                       :redirect_uri => url("/#{settings.frequency}/return/"),
                       :token_method => :post
                     })
-  # TODO: Error checking.
+
   user = Legato::User.new(access_token_obj)
 
   if user.profiles.length == 1
@@ -329,13 +332,18 @@ end
 get %r{/(daily|weekly)/local_config/} do |frequency|
   set_frequency(frequency)
 
-  # TODO: Error checking.
   # If access_token has expired, try session[:refresh_token]?
-  access_token_obj = OAuth2::AccessToken.new(
+  begin
+    access_token_obj = OAuth2::AccessToken.new(
                                           auth_client, session[:access_token])
+  rescue OAuth2::Error => e
+    return 500, e.description
+  rescue
+    return 500, "Something went wrong when trying to get an access token from Google Analytics (2)"
+  end
 
-  # TODO: Error checking.
   user = Legato::User.new(access_token_obj)
+
   @accounts_properties_profiles = get_profiles(user)
   @form_error = session[:form_error]
   session[:form_error] = nil
@@ -351,13 +359,10 @@ post %r{/(daily|weekly)/local_config/} do |frequency|
 
   if params[:profiles] && params[:profiles].length
     # The user selected some profile(s).
-
-    # TODO: Check the Profile IDs are valid.
-    # TODO: Check we have the refresh token still.
     redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{session[:refresh_token]}&config[profiles]=#{params[:profiles].join('+')}"
   else
     # No profiles submitted. Re-show form.
-    session[:form_error] = "Plesae select a Profile"
+    session[:form_error] = "Please select a Profile"
     redirect url("/#{settings.frequency}/local_config/")
   end
 end
