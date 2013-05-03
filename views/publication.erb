@@ -209,7 +209,10 @@
                       .tickFormat(function(d) { return y_tick_format(d); });
 
         var line = d3.svg.line()
-                    .interpolate('basis')
+                    // Makes the graph nice and curvy, but also makes it seem
+                    // a bit less accurate - peaks and troughs won't be
+                    // precisely on the y point they should be.
+                    // .interpolate('basis')
                     .x(function(d) { return x(d.date); })
                     .y(function(d) { return y(d.visits ); });
 
