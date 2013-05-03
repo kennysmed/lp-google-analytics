@@ -1,59 +1,112 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Google Analytics (<%= settings.frequency.capitalize %>)</title>
+  <title><%= format_title %></title>
   <style type="text/css">
     body {
-      background: #fff;
+      background: #F8F6F3;
       color: #000;
+      font-family: Helvetica, Arial, sans-serif;
+      margin: 10px;
+    }
+    .config {
+      border: 1px solid #E8E6E3;
+      background: #fff;
+      padding: 1em 20px;
+      max-width: 420px;
+    }
+    .config-title {
+      margin: 0 0 0.5em 0;
+      font-size: 1.5em;
+    }
+    .config-intro {
+      font-weight: bold;
+      margin: 1em 0;
+      line-height: 1.3em;
+    }
+    .config-error {
+      color: #900;
+    }
+    .config-list,
+    .config-list li {
+      margin: 0;
+      padding: 0; 
+    }
+    .config-list li {
+      list-style-type: none;
+      line-height: 1.5em;
+      color: #999;
+    }
+    .config-list-properties li {
+      margin-left: 20px;
+    }
+    .config-list li label {
+      color: #000;
+      cursor: pointer;
+    }
+    .config-submit {
+      background: #FED84D;
+      border: 1px solid #EEC83D;
+      color: #000;
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 1em;
+      padding: 0.5em 10px;
+      margin-left: 40px;
+    }
+    .config-submit:hover {
+      background: #FCCA2E;
+      cursor: pointer;
     }
   </style>
 </head>
 <body>
-  <h1>Google Analytics on Little Printer (<%= settings.frequency.capitalize %>)</title></h1>
+  <div class="config">
+    <h1 class="config-title"><%= format_title %></title></h1>
 
-  <% if settings.maximum_profiles == 1 %>
-    <p>Please choose one of your Google Analytics Profiles.</p>
-  <% else %>
-    <p>Please choose the Google Analytics Profile(s) you'd like in your subscription (you can have up to <%= settings.maximum_profiles %>).</p>
-  <% end %>
-
-
-  <% if @form_error %>
-    <p class="error"><%= @form_error %></p>
-  <% end %>
-
-
-  <form method="post" action="<%= url('/'+settings.frequency+'/local_config/') %>">
-    <ul>
-    <% @accounts_properties_profiles.each do |a_id, a_data| %>
-      <% if a_data['properties'].length > 0 %>
-        <li><%= a_data['name'] %>
-          <ul>
-            <% a_data['properties'].each do |wp_id, wp_data| %>
-              <% if wp_data['profiles'].length > 0 %>
-                <li><%= wp_data['name'] %>
-                  <ul>
-                    <% wp_data['profiles'].each do |p_id, p_data| %>
-                      <li><input type="checkbox" name="profiles[]" value="<%= p_id %>" id="p<%= p_id %>" />
-                        <label for="p<%= p_id %>"><%= p_data['name'] %></label>
-                      </li>
-                    <% end %>
-                  </ul>
-                </li>
-              <% end %>
-            <% end %>
-          </ul>
-        </li>
+    <p class="config-intro">
+      <% if settings.maximum_profiles == 1 %>
+        Please choose one of your Google Analytics Profiles.
+      <% else %>
+        Please choose the Google Analytics Profile(s) you'd like in your subscription (you can have up to <%= settings.maximum_profiles %>).
       <% end %>
-    <% end %>
-    </ul>
-
-    <p>
-      <input type="submit" value="Submit" />
     </p>
 
-  </form>
+    <% if @form_error %>
+      <p class="config-error"><%= @form_error %></p>
+    <% end %>
+
+
+    <form method="post" action="<%= url('/'+settings.frequency+'/local_config/') %>">
+      <ul class="config-list config-list-accounts">
+      <% @accounts_properties_profiles.each do |a_id, a_data| %>
+        <% if a_data['properties'].length > 0 %>
+          <li><%= a_data['name'] %>
+            <ul class="config-list config-list-properties">
+              <% a_data['properties'].each do |wp_id, wp_data| %>
+                <% if wp_data['profiles'].length > 0 %>
+                  <li><%= wp_data['name'] %>
+                    <ul class="config-list config-list-profiles">
+                      <% wp_data['profiles'].each do |p_id, p_data| %>
+                        <li><input type="checkbox" name="profiles[]" value="<%= p_id %>" id="p<%= p_id %>" />
+                          <label for="p<%= p_id %>"><%= p_data['name'] %></label>
+                        </li>
+                      <% end %>
+                    </ul>
+                  </li>
+                <% end %>
+              <% end %>
+            </ul>
+          </li>
+        <% end %>
+      <% end %>
+      </ul>
+
+      <p>
+        <input type="submit" value="Submit" class="config-submit" />
+      </p>
+
+    </form>
+  </div> <!-- .config -->
 
 </body>
 </html>

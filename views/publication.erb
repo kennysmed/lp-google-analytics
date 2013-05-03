@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <html>
 <head>
-  <title>Google Analytics (<%= settings.frequency.capitalize %>)</title>
+  <title><%= format_title %></title>
 
   <style type="text/css">
     body {
@@ -313,7 +313,7 @@
 </head>
 <body>
 
-  <h1>Google Analytics (<%= settings.frequency.capitalize %>)</h1>
+  <h1><%= format_title %></h1>
 
   <% @profiles_data.each_with_index do |p, idx| %>
     <div class="profile">

@@ -119,6 +119,16 @@ helpers do
     settings.frequency == 'weekly' ? PageviewByWeek : PageviewByDate
   end
 
+
+  #################################################################
+  # Helper functions for formatting things in the views...
+
+  # So that we keep the title consistent in all the places.
+  def format_title
+    "Google Analytics (#{settings.frequency.capitalize})"
+  end
+
+
   # Passed in a period with :start and :end dates, returns a nice string, eg:
   #  30 Dec 2012 to 5 Jan 2013
   #  28 Apr to 5 May 2013
@@ -256,8 +266,6 @@ get %r{/(daily|weekly)/edition/} do |frequency|
     end
     @profiles_data.push(profile_data)
   end
-
-  puts @profiles_data
 
   etag Digest::MD5.hexdigest(params[:access_token] + Date.today.strftime('%d%m%Y'))
   # Testing, always changing etag:
