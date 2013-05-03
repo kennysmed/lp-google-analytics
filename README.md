@@ -53,6 +53,7 @@ or, if you require a specific port, maybe for use with something like [localtunn
 
 This publication is reasonably complicated, but demonstrates a few things:
 
+* Publishing two (daily and weekly) publications from the same codebase.
 * Authenticating a user with Google Analytics via OAuth 2.
 * Presenting the user with a custom options form before returning them to the BERG Cloud Remote.
 * Displaying JavaScript graphs in a publication using d3.
@@ -64,4 +65,4 @@ Some useful references for experimenting with this stuff:
 https://github.com/tpitale/legato/wiki/
 * An explanation of the structure of Google Analytics Accounts, Properties and Profiles: https://www.ewanheming.com/2013/02/ppc-software-development/selecting-a-google-analytics-api-profile-id
 * An easy way to experiment with querying the Google Analytics API: http://ga-dev-tools.appspot.com/explorer/
-* d3 is pretty baffling, but this publication's graph is partly based on this example, which you can experiment with: http://jsfiddle.net/dtkav/Jz6QG/ 
+* d3 <http://d3js.org/> is pretty baffling, but this publication's graph is partly based on this example, which you can experiment with: http://jsfiddle.net/dtkav/Jz6QG/ Most JavaScript charting libraries should work, but you may have to embed the library's code in the page, rather than linking to it (to ensure it loads and runs before the page is rendered to an image).
