@@ -1,7 +1,4 @@
-
 # Google Analytics
-
-## Summary
 
 This is a Ruby + Sinatra app that generates two publications: a daily and a weekly version of similar data, pulled from a user's Google Analytics account.
 
