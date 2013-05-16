@@ -16,6 +16,11 @@ When a user subscribes, they must authenticate with their Google Analytics accou
 
 They are then returned to the BERG Cloud Remote site to choose the publication's delivery time. Nothing is stored locally, so no database is required.
 
+See example publications:
+
+* Daily: http://remote.bergcloud.com/publications/138
+* Weekly: http://remote.bergcloud.com/publications/139
+
 
 ## Setting up
 
