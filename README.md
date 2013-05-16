@@ -1,9 +1,9 @@
 
-# Google Analytics - Two Little Printer publications
+# Google Analytics
 
 ## Summary
 
-This is a Ruby + Sinatra app that generates two publications, a daily and a weekly version of similar data, pulled from a user's Google Analytics account.
+This is a Ruby + Sinatra app that generates two publications: a daily and a weekly version of similar data, pulled from a user's Google Analytics account.
 
 The two endpoints are:
 
@@ -66,3 +66,8 @@ https://github.com/tpitale/legato/wiki/
 * An explanation of the structure of Google Analytics Accounts, Properties and Profiles: https://www.ewanheming.com/2013/02/ppc-software-development/selecting-a-google-analytics-api-profile-id
 * An easy way to experiment with querying the Google Analytics API: http://ga-dev-tools.appspot.com/explorer/
 * d3 <http://d3js.org/> is pretty baffling, but this publication's graph is partly based on this example, which you can experiment with: http://jsfiddle.net/dtkav/Jz6QG/ Most JavaScript charting libraries should work in publications, but you may have to embed the library's code in the page, rather than linking to it (to ensure it loads and runs before the page is rendered to an image).
+
+----
+
+BERG Cloud Developer documentation: http://remote.bergcloud.com/developers/
+
