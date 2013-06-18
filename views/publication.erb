@@ -73,244 +73,94 @@
       font-weight: bold;
     }
 
+    /************************************************************************/
+    /* Default styles for LPChart. */
 
-    .chart {
-      /* Dimensions of overall chart, including axes and internal margins. */
-      width: 374px;
-      height: 180px;
-      margin: 0 0 0 10px;
-    }
+    /*
+    These are the defaults for lines drawn on the chart.
+    Each line will also have a unique class like .line-1 or .line-2, numbered
+    sequentially from 1.
+    */
     .line {
       fill: none;
-      stroke: #000;
-    }
-    .line_most_recent {
-      stroke-width: 4px;
-    }
-    .line_least_recent {
       stroke-width: 1px;
+      stroke: #000;
+      shape-rendering: crispEdges;
     }
 
-    /* The x and y axes themselves. */
-    .axis-y path {
-      stroke: #000;
-      shape-rendering: crispEdges;
-    }
-    /* Horizontal lines behind the graph. */
-    .axis-y .tick line {
-      stroke: #000;
-      shape-rendering: crispEdges;
-    }
-    /* The individual ticks. */
-    .axis-x .tick line {
-      stroke: #000;
-      shape-rendering: crispEdges;
-    }
+    /*
+    The styles below apply to both x and y axes. Each also has its own class,
+    either .axis-x or .axis-y */
+
+    /* The labels on an axis. */
     .axis text {
       font-size: 14px;
+      font-family: Arial, sans-serif;
     }
+    /* The single main line showing an axis. */
+    .axis path {
+      stroke: #000;
+      stroke-width: 1px;
+      shape-rendering: crispEdges;
+    }
+    /* The tick marks or grid lines for an axis. */
+    .axis .tick line {
+      stroke: #000;
+      stroke-width: 1px;
+      shape-rendering: crispEdges;
+    }
+    /* End default LPChart styles. */
+    /************************************************************************/
 
+    .chart {
+      margin: 0 0 0 10px;
+    }
+    .line-2 {
+      stroke-width: 4px;
+    }
   </style>
 
   <%# Include the d3 JS so that it renders inline. The BERG Cloud renderer seems to have problems when JS files are included as scripts. %>
   <%= erb(:js_d3, :layout => false) %>
+  <%= erb(:js_lpchart, :layout => false) %>
 
   <script>
     window.onload = function() {
 
-      // This is based on this d3 example:
-      // http://bl.ocks.org/mbostock/3884955
-      // There's also a version on JSfiddle, which is handy for exploring:
-      // http://jsfiddle.net/dtkav/Jz6QG/ 
-      //  chart_id is the CSS ID of the div where this chart will go.
-      //  chart_data is an array of hashes, each one describing x-axis point(s).
-      //    Each hash will be like:
-      //    'least_recent': 123, // Number of visits in prior period.
-      //    'most_recent': 456, // Number of visits yesterday/last week.
-      //    'date': '0300' // Either an hourminute, or a date.
-      function draw_chart(chart_id, chart_data) {
+      // Set up the chart instance:
+      var chart = LPChart().showYAxisGrid(true).height(180);
 
-        // A bit clunky - find the maximum value of y (visits) for this chart:
-        var max_y = 0;
-        chart_data.forEach(function(d) {
-          if (d.least_recent > max_y) {
-            max_y = d.least_recent;
-          };
-          if (d.most_recent > max_y) {
-            max_y = d.most_recent;
-          };
-        });
-        // Work out how much left margin (in pixels) we need
-        // to leave for that many digits (and commas).
-        var left_margin = 3 + (max_y.toString().length * 9);
-        // But a special case... there might be y-axis labels that are like
-        // '0.8', so we'll need more room than a single finger would need:
-        if (max_y < 10) {
-          left_margin = 3 + (3 * 9);
-        };
-
-        // Size of whole chart, including axes and space around it:
-        var outer_width = document.getElementById(chart_id).offsetWidth;
-        var outer_height = document.getElementById(chart_id).offsetHeight;
-        var margin = {top: 0, right: 10, bottom: 20, left: left_margin};
-        // Size of the area of the chart with the actual lines on:
-        var inner_width = outer_width - margin.left - margin.right;
-        var inner_height = outer_height - margin.top - margin.bottom;
-
-        // Turn a date/time string into a Date object.
-        <% if settings.frequency == 'weekly' %>
-          var parseDate = d3.time.format('%Y%m%d').parse;
-        <% else %>
-          var parseDate = d3.time.format('%H%M').parse;
-        <% end %>
-
-        // The scales.
-        var x = d3.time.scale().range([0, inner_width]);
-
-        // If a horizontal line is drawn at the very top of the graph,
-        // the y-axis label for it will reach above the line. So we need to
-        // add a bit of space (the 7 here) to allow for that.
-        var y = d3.scale.linear().range([inner_height, 7]);
-
-        // I don't understand this one...
-        var scale = d3.scale.ordinal();
-
-        // How we want the X-Axis dates/times formatted.
-        <% if settings.frequency == 'weekly' %>
-          var x_tick_format = d3.time.format('%a');
-        <% else %>
-          var x_tick_format = d3.time.format('%H:00');
-        <% end %>
-
-        // Add commas in thousands.
-        var y_tick_format = d3.format(',');
-
-        // Explicitly set the x axis to show ticks every four hours.
-        <% if settings.frequency == 'weekly' %>
-          var x_tick_values = [parseDate(chart_data[0]['date']),
-                              parseDate(chart_data[1]['date']),
-                              parseDate(chart_data[2]['date']),
-                              parseDate(chart_data[3]['date']),
-                              parseDate(chart_data[4]['date']),
-                              parseDate(chart_data[5]['date']),
-                              parseDate(chart_data[6]['date'])];
-        <% else %>
-          var x_tick_values = [parseDate(chart_data[0]['date']),
-                              parseDate(chart_data[4]['date']),
-                              parseDate(chart_data[8]['date']),
-                              parseDate(chart_data[12]['date']),
-                              parseDate(chart_data[16]['date']),
-                              parseDate(chart_data[20]['date'])];
-        <% end %>
-
-        // The axes.
-        var xAxis = d3.svg.axis().scale(x).orient('bottom')
-                      .tickSize(6, 0, 0)
-                      .tickValues(x_tick_values)
-                      .tickFormat(function(d) { return x_tick_format(d); });
-
-        var yAxis = d3.svg.axis().scale(y).orient('left')
-                      .tickSize(-inner_width, 0, 0) // Make the horizontal lines.
-                      .ticks(5) // Roughly the number of ticks.
-                      .tickFormat(function(d) { return y_tick_format(d); });
-
-        var line = d3.svg.line()
-                    // Makes the graph nice and curvy, but also makes it seem
-                    // a bit less accurate - peaks and troughs won't be
-                    // precisely on the y point they should be.
-                    // .interpolate('basis')
-                    .x(function(d) { return x(d.date); })
-                    .y(function(d) { return y(d.visits ); });
-
-        // The main chart area.
-        var svg = d3.select('#'+chart_id).append('svg')
-            .attr('width', outer_width)
-            .attr('height', outer_height)
-          .append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-        // Now draw the chart's axes and lines.
-        d3plot(chart_data);
-
-        function d3plot(chart_data) {
-          // I don't know...
-          // Something like extracting the names of the periods.
-          scale.domain(d3.keys(chart_data[0]).filter(
-                                  function(key) { return key !== 'date'; }));
-
-          // Turn the date strings into Date objects.
-          chart_data.forEach(function(d) {
-            d.date = parseDate(d.date);
-          });
-
-          // Change from the chart_data format:
-          // [{date:Date, 'least_recent':7, 'most_recent':12}, {}...]
-          // to a different format for periods:
-          // [
-          //  {name:'least_recent', values:[{date:Date, visits:7}, {}...]},
-          //  {name:'most_recent', values:[{date:Date, visits:7}, {}...]}
-          // ]
-          var periods = scale.domain().map(function(name) {
-            return {
-              name: name,
-              values: chart_data.map(function(d) {
-                return {date: d.date, visits: +d[name]};
-              })
-            };
-          });
-
-          // Set the min and max of the x axis.
-          x.domain(d3.extent(chart_data, function(d) { return d.date; }));
-
-          // Set the min and max of the y axis.
-          y.domain([
-            0,
-            d3.max(periods, function(c) {
-              return d3.max(c.values, function(v) {return v.visits; }); })
-          ]);
-
-          // Draw the two axes we prepared earlier.
-          svg.append('g')
-              .attr('class', 'axis axis-x')
-              .attr('transform', 'translate(0,' + inner_height + ')')
-              .call(xAxis);
-
-          svg.append('g')
-              .attr('class', 'axis axis-y')
-              .call(yAxis);
-
-          // Erm... preparing to draw the lines?
-          var period = svg.selectAll('.period')
-              .data(periods)
-            .enter().append('g')
-              .attr('class', 'period');
-            
-          // Draw each of the lines.
-          period.append('path')
-              .attr('class', function(d) { return 'line line_'+d.name; })
-              .attr('d', function(d) { return line(d.values); });
-        };
-      };
-
-      <%# Put all the data into a JS structure for each profile, and make the chart. %>
       <% @profiles_data.each_with_index do |p, profile_idx| %>
-        var chart_data = [];
+        // The data will contain two arrays, one for each line.
+        var chart_data = [[],[]];
 
         <% p[:periods][1][:visits].each_with_index do |v, visit_idx| %>
-          chart_data.push({
-            'least_recent': <%= v.visits %>,
-            'most_recent': <%= p[:periods][0][:visits].to_a[visit_idx].visits %>,
-            <% if settings.frequency == 'weekly' %>
-              // Will be like 'YYYYMMDD'.
-              'date': '<%= v.date %>'
-            <% else %>
-              // Will be like '1500'.
-              'date': '<%= v.hour %>00'
-            <% end %>
-          });
+          <% if settings.frequency == 'weekly' %>
+            // Will be like 'YYYY-MM-DD'.
+            date = '<%= v.date[0, 4] %>-<%= v.date[4, 2] %>-<%= v.date[6, 2] %>';
+          <% else %>
+            // Will be like '15:00'.
+            date =  '<%= v.hour %>:00';
+          <% end %>
+          // Least recent:
+          chart_data[0].push([date, <%= v.visits %>]);
+          // Most recent:
+          chart_data[1].push([
+            date,
+            <%= p[:periods][0][:visits].to_a[visit_idx].visits %>
+          ]);
         <% end %>
 
-        draw_chart('chart-'+<%= profile_idx %>, chart_data);
+        <% if settings.frequency == 'weekly' %>
+          chart.xAxisType('weekday').xAxisTickValues(null);
+        <% else %>
+          chart.xAxisType('hour').xAxisTickValues(['00:00', '04:00', '08:00', '12:00', '16:00', '20:00']);
+        <% end %>
+
+        d3.select('#chart-'+<%= profile_idx %>)
+          .datum(chart_data)
+          .call(chart);
+
       <% end %>
     };
 
