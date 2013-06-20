@@ -308,12 +308,24 @@ get %r{/(daily|weekly)/return/} do |frequency|
 
   return 500, "No access token was returned by Google" if !params[:code]
 
-  access_token_obj = auth_client.auth_code.get_token(params[:code], {
+  begin
+    access_token_obj = auth_client.auth_code.get_token(params[:code], {
                       :redirect_uri => url("/#{settings.frequency}/return/"),
                       :token_method => :post
                     })
+  rescue OAuth2::Error => e
+    return 403, e.description
+  rescue
+    return 403, "Something went wrong when trying to authenticate with Google: #{e}"
+  end
 
-  user = Legato::User.new(access_token_obj)
+  begin
+    user = Legato::User.new(access_token_obj)
+  rescue OAuth2::Error => e
+    return 403, e.description
+  rescue
+    return 403, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+  end
 
   if user.profiles.length == 1
     # If the user only has one Profile, no need for any config. We use that.
@@ -337,9 +349,9 @@ get %r{/(daily|weekly)/local_config/} do |frequency|
     access_token_obj = OAuth2::AccessToken.new(
                                           auth_client, session[:access_token])
   rescue OAuth2::Error => e
-    return 500, e.description
+    return 403, e.description
   rescue
-    return 500, "Something went wrong when trying to get an access token from Google Analytics (2)"
+    return 403, "Something went wrong when trying to get an access token from Google Analytics (2)"
   end
 
   user = Legato::User.new(access_token_obj)
