@@ -345,11 +345,13 @@ get %r{/(daily|weekly)/return/} do |frequency|
     p "FF"
     return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
-
-  if user.profiles.length == 0
+  p user
+  if ! user.has_attribute?('profiles')
     p "GG"
     return 401, "You don't have an Analytics account associated with your Google account."
-  elsif user.profiles.length == 1
+  end
+
+  if user.profiles.length == 1
     # If the user only has one Profile, no need for any config. We use that.
     # The refresh_token is used in future to get another access_token for the
     # same user. So this is what we send back to bergcloud.com.
