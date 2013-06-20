@@ -162,6 +162,20 @@ helpers do
 end
 
 
+error 401 do
+  @message = body[0]
+  status 401
+  erb :error, :layout => :layout_config
+end
+
+
+error 500 do
+  @message = body[0]
+  status 500
+  erb :error, :layout => :layout_config
+end
+
+
 get '/favicon.ico' do
   status 410
 end
@@ -196,10 +210,8 @@ get %r{/(daily|weekly)/edition/} do |frequency|
   begin
     access_token_obj = OAuth2::AccessToken.from_hash(auth_client,
                               :refresh_token => params[:access_token]).refresh!
-  rescue OAuth2::Error => e
-    return 500, e.description
   rescue
-    return 500, "Something went wrong when trying to get an access token from Google Analytics (1)"
+    return 500, "Something went wrong when trying to get an access token from Google Analytics."
   end
 
   user = Legato::User.new(access_token_obj)
@@ -319,22 +331,18 @@ get %r{/(daily|weekly)/return/} do |frequency|
                       :redirect_uri => url("/#{settings.frequency}/return/"),
                       :token_method => :post
                     })
-  rescue OAuth2::Error => e
-    return 403, e.description
-  rescue
-    return 403, "Something went wrong when trying to authenticate with Google: #{e}"
+  rescue => e
+    return 401, "Something went wrong when trying to authenticate with Google: #{e}"
   end
 
   begin
     user = Legato::User.new(access_token_obj)
-  rescue OAuth2::Error => e
-    return 403, e.description
   rescue
-    return 403, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+    return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
 
   if user.profiles.length == 0
-    return 403, "You don't have an Analytics account associated with your Google account."
+    return 401, "You don't have an Analytics account associated with your Google account."
   elsif user.profiles.length == 1
     # If the user only has one Profile, no need for any config. We use that.
     # The refresh_token is used in future to get another access_token for the
@@ -356,26 +364,25 @@ get %r{/(daily|weekly)/local_config/} do |frequency|
   begin
     access_token_obj = OAuth2::AccessToken.new(
                                           auth_client, session[:access_token])
-  rescue OAuth2::Error => e
-    return 403, e.description
   rescue
-    return 403, "Something went wrong when trying to get an access token from Google Analytics (2)"
+    return 401, "Something went wrong when trying to get an access token from Google Analytics."
   end
 
   begin
     user = Legato::User.new(access_token_obj)
-  rescue OAuth2::Error => e
-    return 403, e.description
   rescue
-    return 403, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+    return 401, "Something went wrong trying to access your Google user account details."
   end
 
-  p "USER"
-  p user
-  @accounts_properties_profiles = get_profiles(user)
+  begin
+    @accounts_properties_profiles = get_profiles(user)
+  rescue
+    return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+  end
+
   @form_error = session[:form_error]
   session[:form_error] = nil
-  erb :local_config
+  erb :local_config, :layout => :layout_config
 end
 
 
@@ -633,3 +640,5 @@ end
 get %r{/(daily|weekly)/validate_config/} do |frequency|
   set_frequency(frequency)
 end
+
+
