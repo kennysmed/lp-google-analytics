@@ -323,25 +323,31 @@ end
 # that they want to use.
 get %r{/(daily|weekly)/return/} do |frequency|
   set_frequency(frequency)
-
+  p "AA"
   return 500, "No access token was returned by Google" if !params[:code]
+  p "BB"
 
   begin
     access_token_obj = auth_client.auth_code.get_token(params[:code], {
                       :redirect_uri => url("/#{settings.frequency}/return/"),
                       :token_method => :post
                     })
-  rescue => e
+    p "CC"
+  rescue
+    p "DD"
     return 401, "Something went wrong when trying to authenticate with Google. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
 
   begin
+    p "EE"
     user = Legato::User.new(access_token_obj)
   rescue
+    p "FF"
     return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
 
   if user.profiles.length == 0
+    p "GG"
     return 401, "You don't have an Analytics account associated with your Google account."
   elsif user.profiles.length == 1
     # If the user only has one Profile, no need for any config. We use that.
