@@ -346,7 +346,7 @@ get %r{/(daily|weekly)/return/} do |frequency|
     return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
   p user
-  if ! user.profiles
+  if user.accounts.length == 0
     p "GG"
     return 401, "You don't have an Analytics account associated with your Google account."
   end
