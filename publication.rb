@@ -368,6 +368,8 @@ get %r{/(daily|weekly)/local_config/} do |frequency|
     return 403, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
 
+  p "USER"
+  p user
   @accounts_properties_profiles = get_profiles(user)
   @form_error = session[:form_error]
   session[:form_error] = nil
