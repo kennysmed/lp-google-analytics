@@ -346,17 +346,21 @@ get %r{/(daily|weekly)/return/} do |frequency|
     return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
   p user
+  p "GG"
   if user.accounts.length == 0
-    p "GG"
+    p "HH"
     return 401, "You don't have an Analytics account associated with your Google account."
   end
 
+  p "II"
   if user.profiles.length == 1
+    p "JJ"
     # If the user only has one Profile, no need for any config. We use that.
     # The refresh_token is used in future to get another access_token for the
     # same user. So this is what we send back to bergcloud.com.
     redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{access_token_obj.refresh_token}&config[profiles]=#{user.profiles.first.id}"
   else
+    p "KK"
     session[:refresh_token] = access_token_obj.refresh_token
     session[:access_token] = access_token_obj.token
     redirect url("/#{settings.frequency}/local_config/")
