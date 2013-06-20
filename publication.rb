@@ -332,7 +332,7 @@ get %r{/(daily|weekly)/return/} do |frequency|
                       :token_method => :post
                     })
   rescue => e
-    return 401, "Something went wrong when trying to authenticate with Google: #{e}"
+    return 401, "Something went wrong when trying to authenticate with Google. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
 
   begin
