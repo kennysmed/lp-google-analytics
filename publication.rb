@@ -162,6 +162,11 @@ helpers do
 end
 
 
+get '/favicon.ico' do
+  status 410
+end
+
+
 get %r{/(daily|weekly)/meta.json} do |frequency|
   set_frequency(frequency)
   content_type :json
