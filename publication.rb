@@ -292,6 +292,7 @@ get %r{/(daily|weekly)/configure/} do |frequency|
 
   # Save the return URL so we still have it after authentication.
   session[:bergcloud_return_url] = params['return_url']
+  session[:bergcloud_error_url] = params['error_url']
 
   begin
     redirect auth_client.auth_code.authorize_url(
@@ -359,7 +360,13 @@ get %r{/(daily|weekly)/local_config/} do |frequency|
     return 403, "Something went wrong when trying to get an access token from Google Analytics (2)"
   end
 
-  user = Legato::User.new(access_token_obj)
+  begin
+    user = Legato::User.new(access_token_obj)
+  rescue OAuth2::Error => e
+    return 403, e.description
+  rescue
+    return 403, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+  end
 
   @accounts_properties_profiles = get_profiles(user)
   @form_error = session[:form_error]
