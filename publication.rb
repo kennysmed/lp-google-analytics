@@ -169,6 +169,13 @@ error 401 do
 end
 
 
+error 403 do
+  @message = body[0]
+  status 403
+  erb :error, :layout => :layout_config
+end
+
+
 error 500 do
   @message = body[0]
   status 500
@@ -347,10 +354,16 @@ get %r{/(daily|weekly)/return/} do |frequency|
   end
   p user
   p "GG"
-  if user.accounts.length == 0
-    p "HH"
-    return 401, "You don't have an Analytics account associated with your Google account."
+  begin
+    if user.accounts.length == 1
+      p "HH"
+      # Do nothing.
+    end
+  rescue
+    return 403, "You don't have an Analytics account associated with your Google account."
   end
+
+
 
   p "II"
   if user.profiles.length == 1
