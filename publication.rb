@@ -330,50 +330,38 @@ end
 # that they want to use.
 get %r{/(daily|weekly)/return/} do |frequency|
   set_frequency(frequency)
-  p "AA"
   return 500, "No access token was returned by Google" if !params[:code]
-  p "BB"
 
   begin
     access_token_obj = auth_client.auth_code.get_token(params[:code], {
                       :redirect_uri => url("/#{settings.frequency}/return/"),
                       :token_method => :post
                     })
-    p "CC"
   rescue
-    p "DD"
-    return 401, "Something went wrong when trying to authenticate with Google. Maybe your Google account doesn't have an Analytics account associated with it?"
+    return 401, "Something went wrong when trying to authenticate with Google."
   end
 
   begin
-    p "EE"
     user = Legato::User.new(access_token_obj)
   rescue
-    p "FF"
-    return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+    return 403, "Something went wrong trying to access Google Analytics data."
   end
-  p user
-  p "GG"
+
+  # If the user had no Google Analytics account associated with their Google
+  # data, we were getting an OAuth2::Error when trying to access 
+  # user.profiles (or user.accounts). So we'll check that first:
   begin
-    if user.accounts.length == 1
-      p "HH"
-      # Do nothing.
-    end
+    tester = user.accounts.length
   rescue
-    return 403, "You don't have an Analytics account associated with your Google account."
+    return 403, "You don't have any Google Analytics accounts associated with your Google account."
   end
 
-
-
-  p "II"
   if user.profiles.length == 1
-    p "JJ"
     # If the user only has one Profile, no need for any config. We use that.
     # The refresh_token is used in future to get another access_token for the
     # same user. So this is what we send back to bergcloud.com.
     redirect "#{session[:bergcloud_return_url]}?config[access_token]=#{access_token_obj.refresh_token}&config[profiles]=#{user.profiles.first.id}"
   else
-    p "KK"
     session[:refresh_token] = access_token_obj.refresh_token
     session[:access_token] = access_token_obj.token
     redirect url("/#{settings.frequency}/local_config/")
@@ -396,13 +384,13 @@ get %r{/(daily|weekly)/local_config/} do |frequency|
   begin
     user = Legato::User.new(access_token_obj)
   rescue
-    return 401, "Something went wrong trying to access your Google user account details."
+    return 403, "Something went wrong trying to access your Google user account details."
   end
 
   begin
     @accounts_properties_profiles = get_profiles(user)
   rescue
-    return 401, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
+    return 403, "Something went wrong trying to access Google Analytics data. Maybe your Google account doesn't have an Analytics account associated with it?"
   end
 
   @form_error = session[:form_error]
