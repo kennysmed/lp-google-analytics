@@ -162,23 +162,8 @@ helpers do
 end
 
 
-error 401 do
+error 400..500 do
   @message = body[0]
-  status 401
-  erb :error, :layout => :layout_config
-end
-
-
-error 403 do
-  @message = body[0]
-  status 403
-  erb :error, :layout => :layout_config
-end
-
-
-error 500 do
-  @message = body[0]
-  status 500
   erb :error, :layout => :layout_config
 end
 
